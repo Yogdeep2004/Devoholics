@@ -69,3 +69,13 @@ describe("Explore", () => {
     expect(await screen.findByText(/No technologies match/)).toBeInTheDocument();
   });
 });
+
+describe("api error description", () => {
+  it("keeps the explicit validation reasons from structured errors", async () => {
+    const { describe: d } = await import("@/lib/api");
+    expect(d("plain", "x")).toBe("plain");
+    expect(d({ message: "failed", errors: [{ message: "Node 'ghost' does not exist" }] }, "x")).toBe("failed: Node 'ghost' does not exist");
+    expect(d({ message: "bad", report: { issues: [{ level: "error", message: "dup" }, { level: "warning", message: "w" }] } }, "x")).toBe("bad: dup");
+    expect(d(undefined, "fallback")).toBe("fallback");
+  });
+});

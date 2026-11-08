@@ -1,6 +1,6 @@
 import { applyEdgeChanges, applyNodeChanges, type Connection, type EdgeChange, type NodeChange } from "@xyflow/react";
 import { create } from "zustand";
-import type { Component, Graph, Report } from "../types";
+import type { Component, Diff, Graph, Report } from "../types";
 import { fromGraph, toGraph, uid, type RFEdge, type RFNode } from "./convert";
 
 const desel = <T extends { selected?: boolean }>(xs: T[]): T[] => xs.map((x) => (x.selected ? { ...x, selected: false } : x));
@@ -10,6 +10,8 @@ type Sel = { kind: "node" | "edge"; id: string } | null;
 type State = {
   nodes: RFNode[]; edges: RFEdge[]; selected: Sel; dirty: boolean; view: "visual" | "technical";
   report: Report | null; defaultConnection: string;
+  preview: { graph: Graph; diff: Diff } | null;
+  setPreview: (p: { graph: Graph; diff: Diff } | null) => void;
   load: (g: Graph) => void;
   onNodesChange: (c: NodeChange<RFNode>[]) => void;
   onEdgesChange: (c: EdgeChange<RFEdge>[]) => void;
@@ -30,7 +32,8 @@ type State = {
 };
 
 export const useEditor = create<State>((set, get) => ({
-  nodes: [], edges: [], selected: null, dirty: false, view: "visual", report: null, defaultConnection: "http_api",
+  nodes: [], edges: [], selected: null, dirty: false, view: "visual", report: null, defaultConnection: "http_api", preview: null,
+  setPreview: (preview) => set({ preview }),
   load: (g) => set({ ...fromGraph(g), selected: null, dirty: false }),
   onNodesChange: (c) => set((s) => ({
     nodes: applyNodeChanges(c, s.nodes),

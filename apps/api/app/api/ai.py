@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.ai import compare as cmp
 from app.ai.apply import apply_proposal
 from app.ai.context import OPS_SCHEMA, SYSTEM, candidates, clean, fence, graph_summary, tech_facts
-from app.ai.provider import LLM, get_llm
+from app.ai.provider import LLM, LLMNotConfigured, get_llm
 from app.ai.review import rule_review
 from app.ai.schemas import AIReview, Objective, Proposal
 from app.ai.service import AIOutputError, ask
@@ -88,6 +88,8 @@ def _graph(a) -> Graph:
 def _ai_call(llm: LLM, user: str, model):
     try:
         return ask(llm, SYSTEM, user, model)
+    except LLMNotConfigured as e:
+        raise HTTPException(503, str(e)) from e
     except AIOutputError as e:
         raise HTTPException(502, {"message": "The AI assistant did not return a usable answer", "detail": str(e)}) from e
 
@@ -179,26 +181,25 @@ def explain(arch_id: str, body: ExplainIn, user: User = Depends(ai_rate_limit), 
 
 
 @router.post("/{arch_id}/ai/review")
-def review(arch_id: str, user: User = Depends(ai_rate_limit), db: Session = Depends(get_db)):
+def review(arch_id: str, user: User = Depends(ai_rate_limit), db: Session = Depends(get_db), llm: LLM = Depends(get_llm)):
     a = _get_owned(db, user, arch_id)
     g = _graph(a)
     findings = [f.model_dump() for f in rule_review(db, g)]
     ai_error = None
-    if not settings.llm_api_key:
-        ai_error = "AI assistant is not configured; showing rule-based findings only"
-    else:
-        try:
-            user_msg = ("TASK: Review this architecture. Check missing components, questionable connections, duplicate functionality, "
-                        "security, scalability, bottlenecks, unnecessary complexity, cost concerns and missing observability. "
-                        "Give each finding a severity (high|medium|low|info) and explanation. Do not repeat the obvious structural "
-                        f"checks already done by rules.\nGRAPH:\n{fence(graph_summary(g))}\n"
-                        'JSON SCHEMA: {"findings": [{"severity":"high|medium|low|info","category":"...","title":"...","explanation":"...","nodes":["<node id>"]}]}')
-            valid_ids = {n.id for n in g.nodes}
-            for f in _ai_call(get_llm(), user_msg, AIReview).findings:
-                d = f.model_dump(); d["source"] = "ai"; d["nodes"] = [n for n in d["nodes"] if n in valid_ids]
-                findings.append(d)
-        except HTTPException as e:
-            ai_error = str(e.detail)[:200]
+    user_msg = ("TASK: Review this architecture. Check missing components, questionable connections, duplicate functionality, "
+                "security, scalability, bottlenecks, unnecessary complexity, cost concerns and missing observability. "
+                "Give each finding a severity (high|medium|low|info) and explanation. Do not repeat the obvious structural "
+                f"checks already done by rules.\nGRAPH:\n{fence(graph_summary(g))}\n"
+                'JSON SCHEMA: {"findings": [{"severity":"high|medium|low|info","category":"...","title":"...","explanation":"...","nodes":["<node id>"]}]}')
+    valid_ids = {n.id for n in g.nodes}
+    try:
+        for f in _ai_call(llm, user_msg, AIReview).findings:
+            d = f.model_dump()
+            d["source"], d["nodes"] = "ai", [n for n in d["nodes"] if n in valid_ids]
+            findings.append(d)
+    except HTTPException as e:  # rules-only is still useful when the model is missing or fails
+        ai_error = ("AI assistant is not configured; showing rule-based findings only" if e.status_code == 503
+                    else str(e.detail)[:200])
     order = {"high": 0, "medium": 1, "low": 2, "info": 3}
     findings.sort(key=lambda f: order[f["severity"]])
     return {"version": _latest(a).version_number, "findings": findings, "ai_error": ai_error,

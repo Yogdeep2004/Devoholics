@@ -4,7 +4,6 @@ from typing import Protocol
 
 import httpx
 import structlog
-from fastapi import HTTPException
 
 from app.core.config import settings
 
@@ -12,6 +11,10 @@ log = structlog.get_logger()
 
 
 class LLMError(Exception):
+    pass
+
+
+class LLMNotConfigured(LLMError):
     pass
 
 
@@ -51,7 +54,15 @@ class OpenAICompatLLM:
         raise LLMError("LLM retries exhausted")
 
 
+NOT_CONFIGURED = "AI assistant is not configured: set LLM_API_KEY (free key at console.groq.com)"
+
+
+class NotConfiguredLLM:
+    def complete(self, system: str, user: str) -> str:
+        raise LLMNotConfigured(NOT_CONFIGURED)
+
+
 def get_llm() -> LLM:
     if not settings.llm_api_key:
-        raise HTTPException(503, "AI assistant is not configured: set LLM_API_KEY (free key at console.groq.com)")
+        return NotConfiguredLLM()
     return OpenAICompatLLM(settings.llm_base_url, settings.llm_api_key, settings.llm_model)

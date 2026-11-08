@@ -2,7 +2,6 @@ import json
 
 import httpx
 import pytest
-from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
@@ -201,6 +200,7 @@ def test_explain_separates_ai_text_from_verified_facts(env):
 
 def test_review_rules_work_without_any_llm(env, monkeypatch):
     c, _, _, aid, _ = env
+    app.dependency_overrides.pop(get_llm)
     monkeypatch.setattr(settings, "llm_api_key", "")
     r = c.post(f"/api/v1/architectures/{aid}/ai/review").json()
     titles = [f["title"] for f in r["findings"]]
@@ -211,9 +211,7 @@ def test_review_rules_work_without_any_llm(env, monkeypatch):
 
 def test_review_merges_ai_findings_and_drops_fake_node_ids(env, monkeypatch):
     c, _, llm, aid, _ = env
-    monkeypatch.setattr(settings, "llm_api_key", "k")
     llm["v"] = FakeLLM({"findings": [{"severity": "high", "category": "security", "title": "Open DB", "explanation": "x", "nodes": ["vec", "ghost"]}]})
-    monkeypatch.setattr(ai_api, "get_llm", lambda: llm["v"])
     f = next(x for x in c.post(f"/api/v1/architectures/{aid}/ai/review").json()["findings"] if x["source"] == "ai")
     assert f["nodes"] == ["vec"] and f["title"] == "Open DB"
 
@@ -268,6 +266,6 @@ def test_provider_errors_are_explicit():
         _client(lambda r: httpx.Response(401, text="bad key")).complete("s", "u")
     with pytest.raises(LLMError, match="malformed"):
         _client(lambda r: httpx.Response(200, json={"nope": 1})).complete("s", "u")
-    with pytest.raises(HTTPException):
-        provider.settings.llm_api_key = ""
-        get_llm()
+    provider.settings.llm_api_key = ""
+    with pytest.raises(provider.LLMNotConfigured, match="LLM_API_KEY"):
+        get_llm().complete("s", "u")

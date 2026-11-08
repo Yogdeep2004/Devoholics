@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
-from sqlalchemy import delete, func, select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.routes import optional_user_id
@@ -231,4 +231,4 @@ def delete_collection(cid: str, user: User = Depends(current_user), db: Session 
     c = db.get(Collection, cid)
     if not c or c.user_id != user.id:
         raise HTTPException(404, "collection not found")
-    db.execute(delete(Collection).where(Collection.id == cid)); db.commit()
+    db.delete(c); db.commit()

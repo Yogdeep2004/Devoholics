@@ -153,3 +153,15 @@ def test_collections_and_components(env):
     assert c.post("/api/v1/architectures", json={"title": "t", "collection_id": "nope"}).status_code == 404
     comps = c.get("/api/v1/components?component_type=vector_database").json()
     assert [x["slug"] for x in comps] == ["qdrant"]
+
+
+def test_delete_collection_keeps_architectures(env):
+    c, who, _ = env
+    col = c.post("/api/v1/collections", json={"name": "Temp"}).json()
+    a = c.post("/api/v1/architectures", json={"title": "keep me", "collection_id": col["id"]}).json()
+    who["id"] = "u2"
+    assert c.delete(f"/api/v1/collections/{col['id']}").status_code == 404  # not yours
+    who["id"] = "u1"
+    assert c.delete(f"/api/v1/collections/{col['id']}").status_code == 204
+    assert c.get("/api/v1/collections").json() == []
+    assert c.get(f"/api/v1/architectures/{a['id']}").status_code == 200

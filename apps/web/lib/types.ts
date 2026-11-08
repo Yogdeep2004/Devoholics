@@ -44,3 +44,18 @@ export type ArchFull = ArchMeta & { owner: boolean; graph: Graph; version_note: 
 export type VersionRow = { version_number: number; note: string | null; created_at: string; nodes: number; edges: number };
 export type Component = { slug: string; name: string; category: string; component_type: string; description: string | null;
   license: string | null; stars: number | null; official_url: string | null; documentation_url: string | null; repository_url: string | null };
+
+export type AIOp = { action: string; reason?: string; [k: string]: unknown };
+export type Diff = { added_nodes: string[]; removed_nodes: string[]; changed_nodes: string[]; added_edges: string[]; removed_edges: string[] };
+export type Proposal = {
+  summary: string; explanation: string; assumptions: string[]; trade_offs: string[];
+  comparison: { criterion: string; current: string; alternative: string }[]; operations: AIOp[];
+};
+export type Suggestion = {
+  id: string; kind: string; status: string; base_version: number; ai_generated: true; proposal: Proposal; diff: Diff;
+  preview_graph: Graph; validation: Report; verified_facts: Record<string, Record<string, unknown>>;
+};
+export type Finding = { severity: "high" | "medium" | "low" | "info"; category: string; title: string; explanation: string; nodes: string[]; source: "rule" | "ai" };
+export type ReviewOut = { version: number; findings: Finding[]; ai_error: string | null; note: string };
+export type ExplainOut = { ai_generated: true; answer: string; verified_facts: Record<string, Record<string, unknown>> };
+export type SuggestionRow = { id: string; kind: string; prompt: string; status: string; summary: string | null; created_at: string };

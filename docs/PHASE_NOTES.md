@@ -30,7 +30,19 @@ live validation, version history + restore. Verified by a Playwright run (create
 delete/restore/technical view).
 Not yet: blueprint templates (Phase 6), opening a technology in the Playground from its profile (Phase 5).
 
-## Phase 4 – AI assistant (NOT started: needs an LLM provider + API key decision)
+## Phase 4 – AI assistant (done; live model needs a key)
+Provider: any OpenAI-compatible API via `LLM_BASE_URL` / `LLM_API_KEY` / `LLM_MODEL`. Default is Groq
+(`openai/gpt-oss-120b`): free tier, no card, key at https://console.groq.com/keys. Sources disagree on whether Groq enforces
+strict JSON schemas for this model, so correctness never depends on it: output is parsed, Pydantic-validated, and gets one
+repair attempt with the error fed back. Swap providers by changing the three env vars.
+Protocol (never bypassed): request -> graph + candidate technologies (fenced as untrusted `<data>`) -> LLM JSON ->
+Pydantic `Proposal` -> deterministic `apply_proposal` + graph validation (explicit errors, one repair round) -> stored as a
+pending `ai_suggestions` row with a diff and preview -> user accepts all/some operations or rejects -> accept re-validates,
+refuses stale proposals (architecture changed), and appends a new version. The original graph is never mutated by a proposal.
+Endpoints: `/architectures/{id}/ai/{generate,alternatives,optimize,explain,review,suggestions,...}`, `/architectures/ai/compare`.
+Review = deterministic rules (source "rule") + optional AI findings (source "ai"); works without any key.
+Compare is computed from graphs + DB; AI narrative is optional. AI answers are shown separately from "Verified data".
+Per-user rate limit: `AI_REQUESTS_PER_MINUTE` (default 10). Not yet verified against a live model (no key was available).
 
 ## Run
     cd apps/api && python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"
@@ -43,6 +55,6 @@ Not yet: blueprint templates (Phase 6), opening a technology in the Playground f
 Endpoints: /health, /api/v1/{categories,technologies,trending,feed,components,connection-types}, /me/*, /architectures/*, /collections/*.
 
 ## Env vars
-Backend: DATABASE_URL, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, GITHUB_TOKEN, CORS_ORIGINS, LOG_LEVEL.
+Backend: DATABASE_URL, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, GITHUB_TOKEN, LLM_API_KEY, LLM_BASE_URL, LLM_MODEL, AI_REQUESTS_PER_MINUTE, CORS_ORIGINS, LOG_LEVEL.
 Web: NEXT_PUBLIC_API_URL, NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY.
 Supabase direct DB host is IPv6-only; use the Session pooler URL.

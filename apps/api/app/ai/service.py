@@ -4,7 +4,7 @@ import re
 import structlog
 from pydantic import BaseModel, ValidationError
 
-from app.ai.provider import LLM, LLMError
+from app.ai.provider import LLM, LLMError, LLMNotConfigured
 
 log = structlog.get_logger()
 
@@ -38,6 +38,8 @@ def ask(llm: LLM, system: str, user: str, model: type[BaseModel]):
             f"{user}\n\nYour previous reply was invalid: {err}\nReply again with ONE corrected JSON object only.")
         try:
             raw = llm.complete(system, prompt)
+        except LLMNotConfigured:
+            raise
         except LLMError as e:
             raise AIOutputError(str(e)) from e
         try:

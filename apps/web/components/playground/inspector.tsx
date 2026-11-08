@@ -56,7 +56,7 @@ export function Inspector({ report, onReplace }: { report: Report | null; onRepl
   const node = selected?.kind === "node" ? nodes.find((n) => n.id === selected.id) : null;
   const edge = selected?.kind === "edge" ? edges.find((e) => e.id === selected.id) : null;
   return (
-    <aside className="h-full w-80 shrink-0 space-y-3 overflow-y-auto border-l border-border bg-surface p-3" aria-label="Inspector">
+    <aside className="space-y-3 p-3" aria-label="Inspector">
       {node && (
         <>
           <div className="flex items-center justify-between"><h2 className="text-sm font-semibold capitalize">{node.type}</h2>
