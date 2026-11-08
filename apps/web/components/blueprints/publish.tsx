@@ -1,9 +1,10 @@
 "use client";
+import { X } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useState } from "react";
 import { api } from "@/lib/api";
 
-const inp = "w-full rounded-md border border-border bg-surface2 px-2 py-1.5 text-sm";
+const inp = "field";
 const lines = (s: string) => s.split("\n").map((x) => x.trim()).filter(Boolean);
 
 /** Submits the architecture's latest *saved* version as a community blueprint (goes to moderation first). */
@@ -21,9 +22,9 @@ export function PublishDialog({ architectureId, defaultTitle, token, dirty, onCl
     } catch (e) { setErr((e as Error).message); } finally { setBusy(false); }
   };
   return (
-    <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-label="Publish as blueprint">
-      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg border border-border bg-surface p-4 shadow-xl">
-        <div className="mb-3 flex justify-between"><h2 className="font-medium">Publish as blueprint</h2><button onClick={onClose} aria-label="Close" className="text-muted hover:text-fg">✕</button></div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-label="Publish as blueprint">
+      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl border border-border-strong bg-surface p-5 shadow-[0_24px_64px_-16px_rgb(0_0_0/0.8)]">
+        <div className="mb-3 flex justify-between"><h2 className="font-medium">Publish as blueprint</h2><button onClick={onClose} aria-label="Close" className="btn btn-icon btn-sm"><X size={14} /></button></div>
         {done ? (
           <div className="space-y-3 text-sm"><p role="status" className="text-good">Submitted for review.</p>
             <p className="text-muted">A moderator will check it for policy. It stays private to you until approved. This is not a technical review.</p>
@@ -38,8 +39,8 @@ export function PublishDialog({ architectureId, defaultTitle, token, dirty, onCl
             <label className="block space-y-1 text-xs text-muted">Known limitations (one per line)<textarea className={inp} rows={3} value={f.limits} onChange={set("limits")} /></label>
             <label className="block space-y-1 text-xs text-muted">Infrastructure considerations<textarea className={inp} rows={2} maxLength={2000} value={f.infra} onChange={set("infra")} /></label>
             {err && <p role="alert" className="text-xs text-bad">{err}</p>}
-            <div className="flex gap-2"><button disabled={busy} className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-bg disabled:opacity-60">{busy ? "Submitting…" : "Submit for review"}</button>
-              <button type="button" onClick={onClose} className="text-sm text-muted hover:text-fg">Cancel</button></div>
+            <div className="flex gap-2"><button disabled={busy} className="btn btn-primary">{busy ? "Submitting…" : "Submit for review"}</button>
+              <button type="button" onClick={onClose} className="btn">Cancel</button></div>
           </form>)}
       </div>
     </div>

@@ -36,3 +36,21 @@ export function fromGraph(g: Graph): { nodes: RFNode[]; edges: RFEdge[] } {
 }
 
 export const uid = (p: string) => `${p}_${Math.random().toString(36).slice(2, 8)}`;
+
+/** Compact left-to-right layered layout (longest-path layering). Used for small previews, never saved. */
+export function layeredLayout(g: Graph, dx = 224, dy = 84): Graph {
+  const comps = g.nodes.filter((n) => n.kind === "component");
+  const depth = new Map<string, number>(comps.map((n) => [n.id, 0]));
+  for (let pass = 0; pass < comps.length; pass++) {
+    for (const e of g.edges) {
+      const d = (depth.get(e.source) ?? 0) + 1;
+      if (depth.has(e.target) && d > (depth.get(e.target) ?? 0) && d <= comps.length) depth.set(e.target, d);
+    }
+  }
+  const cols = new Map<number, string[]>();
+  for (const n of comps) cols.set(depth.get(n.id) ?? 0, [...(cols.get(depth.get(n.id) ?? 0) ?? []), n.id]);
+  const maxRows = Math.max(...[...cols.values()].map((c) => c.length));
+  const pos = new Map<string, { x: number; y: number }>();
+  for (const [d, ids] of cols) ids.forEach((id, i) => pos.set(id, { x: d * dx, y: (i + (maxRows - ids.length) / 2) * dy }));
+  return { ...g, nodes: comps.map((n) => ({ ...n, parent: null, position: pos.get(n.id) ?? n.position })) };
+}

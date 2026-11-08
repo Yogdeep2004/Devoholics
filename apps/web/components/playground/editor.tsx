@@ -1,6 +1,8 @@
 "use client";
 import "@xyflow/react/dist/style.css";
 import { Background, Controls, MiniMap, ReactFlow, ReactFlowProvider, useReactFlow, type OnSelectionChangeParams } from "@xyflow/react";
+import { ArrowLeft, Check, X, ClockCounterClockwise, FloppyDisk, GlobeSimple, LinkSimple, LockSimple, Sparkle, UploadSimple } from "@phosphor-icons/react";
+import { motion } from "motion/react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -28,15 +30,15 @@ function History({ id, token, current, onRestored, onClose }: { id: string; toke
     try { await api(`/architectures/${id}/restore/${n}`, { method: "POST", token }); onRestored(); } catch (e) { setErr((e as Error).message); }
   };
   return (
-    <div className="absolute right-3 top-3 z-10 w-72 rounded-lg border border-border bg-surface p-3 shadow-lg" role="dialog" aria-label="Version history">
-      <div className="mb-2 flex justify-between"><h2 className="text-sm font-medium">Version history</h2><button onClick={onClose} aria-label="Close history" className="text-muted hover:text-fg">✕</button></div>
+    <div className="absolute right-3 top-3 z-20 w-80 rounded-xl border border-border-strong bg-surface p-3 shadow-[0_20px_48px_-16px_rgb(0_0_0/0.7)]" role="dialog" aria-label="Version history">
+      <div className="mb-2 flex justify-between"><h2 className="text-sm font-medium">Version history</h2><button onClick={onClose} aria-label="Close history" className="btn btn-icon btn-sm"><X size={14} /></button></div>
       {err && <p role="alert" className="text-xs text-bad">{err}</p>}
       <ul className="max-h-72 space-y-1 overflow-y-auto">
         {(rows ?? []).map((v) => (
-          <li key={v.version_number} className="flex items-center justify-between gap-2 rounded border border-border px-2 py-1 text-xs">
+          <li key={v.version_number} className="flex items-center justify-between gap-2 rounded-lg border hairline px-2.5 py-2 text-xs">
             <span><b>v{v.version_number}</b> {v.version_number === current && <span className="text-accent">(current)</span>}<br />
-              <span className="text-muted">{v.note ?? "—"} · {v.nodes} nodes · {new Date(v.created_at).toLocaleString()}</span></span>
-            {v.version_number !== current && <button onClick={() => restore(v.version_number)} className="rounded border border-border px-1.5 py-0.5 hover:text-fg">Restore</button>}
+              <span className="text-muted">{v.note ?? "no note"}, {v.nodes} nodes, {new Date(v.created_at).toLocaleString()}</span></span>
+            {v.version_number !== current && <button onClick={() => restore(v.version_number)} className="btn btn-sm">Restore</button>}
           </li>
         ))}
       </ul>
@@ -112,8 +114,8 @@ function Inner({ id }: { id: string }) {
   const edges = useMemo(() => shown.edges.map((e) => {
     const st = ed.report?.edge_status[e.id];
     return { ...e, label: `${(e.data?.connection_type ?? "").replace(/_/g, " ")}${e.data?.label ? ` · ${e.data.label}` : ""}`,
-      labelStyle: { fontSize: 10, fill: "var(--muted)" }, labelBgStyle: { fill: "var(--surface)" },
-      style: { stroke: st === "verified" ? "var(--good)" : st === "compatible" ? "var(--accent)" : "var(--warn)", strokeDasharray: st === "unverified" ? "5 4" : undefined } };
+      labelStyle: { fontSize: 10, fill: "var(--muted)" }, labelBgStyle: { fill: "var(--bg)" }, labelBgPadding: [4, 2] as [number, number],
+      style: { stroke: st === "verified" ? "var(--good)" : st === "compatible" ? "var(--muted)" : "var(--warn)", strokeDasharray: st === "unverified" ? "5 4" : undefined } };
   }), [shown.edges, ed.report]);
 
   const onSelectionChange = useCallback(({ nodes, edges: es }: OnSelectionChangeParams) => {
@@ -156,60 +158,70 @@ function Inner({ id }: { id: string }) {
 
   if (err && !arch) return <ErrorNote msg={err} />;
   if (!arch) return <Skeleton />;
-  const btn = "rounded-md border border-border px-2.5 py-1 text-sm text-muted hover:text-fg disabled:opacity-40";
+  const btn = "btn btn-sm";
+  const CONNECTIONS = ["http_api", "database_connection", "llm_inference", "embedding_generation", "retrieval", "tool_invocation", "mcp_communication", "event_streaming", "authentication", "data_ingestion", "custom"];
   return (
-    <div className="-mx-4 -my-6 flex h-[calc(100vh-3.5rem)] flex-col sm:-mx-6">
-      <div className="flex flex-wrap items-center gap-2 border-b border-border bg-surface px-3 py-2">
-        <Link href="/playground" className="text-sm text-muted hover:text-fg">← All</Link>
+    <div className="fixed inset-x-0 bottom-0 top-14 z-30 flex flex-col bg-bg">
+      <div className="flex h-12 shrink-0 items-center gap-2 border-b hairline bg-surface px-3">
+        <Link href="/playground" className="btn btn-icon btn-sm" aria-label="Back to all architectures"><ArrowLeft size={15} /></Link>
         <input aria-label="Title" disabled={readOnly} value={title} onChange={(e) => { setTitle(e.target.value); useEditor.setState({ dirty: true }); }}
-          className="min-w-40 flex-1 rounded border border-transparent bg-transparent px-2 py-1 text-sm font-medium hover:border-border focus:border-border" />
-        <div className="flex overflow-hidden rounded-md border border-border text-sm" role="group" aria-label="View">
+          className="h-8 min-w-32 max-w-xs flex-1 rounded-lg border border-transparent bg-transparent px-2 text-sm font-medium tracking-tight transition-colors duration-150 hover:border-border focus:border-border-strong focus:outline-none" />
+        <div className="flex rounded-lg bg-surface2 p-0.5 text-[13px]" role="group" aria-label="View">
           {(["visual", "technical"] as const).map((v) => (
-            <button key={v} aria-pressed={ed.view === v} onClick={() => ed.setView(v)} className={cn("px-2.5 py-1 capitalize", ed.view === v ? "bg-accent/15 text-accent" : "text-muted")}>{v}</button>
+            <button key={v} aria-pressed={ed.view === v} onClick={() => ed.setView(v)}
+              className={cn("rounded-md px-2.5 py-1 capitalize transition-colors duration-150", ed.view === v ? "bg-surface3 text-fg" : "text-muted hover:text-fg")}>{v}</button>
           ))}
         </div>
-        <select aria-label="Default connection type" value={ed.defaultConnection} onChange={(e) => ed.setDefaultConnection(e.target.value)} className="rounded-md border border-border bg-surface2 px-2 py-1 text-sm">
-          {["http_api", "database_connection", "llm_inference", "embedding_generation", "retrieval", "tool_invocation", "mcp_communication", "event_streaming", "authentication", "data_ingestion", "custom"].map((c) => <option key={c} value={c}>new link: {c.replace(/_/g, " ")}</option>)}
+        <select aria-label="Default connection type" value={ed.defaultConnection} onChange={(e) => ed.setDefaultConnection(e.target.value)} className="field !h-8 !w-auto max-md:hidden">
+          {CONNECTIONS.map((c) => <option key={c} value={c}>new link: {c.replace(/_/g, " ")}</option>)}
         </select>
-        <button className={btn} onClick={() => setShowHistory((s) => !s)}>History · v{arch.latest_version}</button>
+        <div className="flex-1" />
+        {saving === "saved" && !ed.dirty && <span role="status" className="inline-flex items-center gap-1 text-xs text-good"><Check size={13} weight="bold" />Saved</span>}
+        {err && <span role="alert" className="max-w-56 truncate text-xs text-bad" title={err}>{err}</span>}
+        <button className={btn} onClick={() => setShowHistory((s) => !s)}><ClockCounterClockwise size={14} />History <span className="num">v{arch.latest_version}</span></button>
         {!readOnly && (
           <>
-            <button className={btn} onClick={() => setVisibility(arch.visibility === "private" ? "public" : "private")}>{arch.visibility === "private" ? "Private" : "Public"}</button>
+            <button className={btn} onClick={() => setVisibility(arch.visibility === "private" ? "public" : "private")}>
+              {arch.visibility === "private" ? <LockSimple size={14} /> : <GlobeSimple size={14} />}{arch.visibility === "private" ? "Private" : "Public"}</button>
             {arch.visibility === "public" && (
-              <button className={btn} onClick={() => { navigator.clipboard?.writeText(window.location.href); setCopied(true); setTimeout(() => setCopied(false), 1500); }}>{copied ? "Link copied" : "Copy link"}</button>)}
-            <button className={btn} onClick={() => setShowPublish(true)}>Publish as blueprint</button>
-            <input aria-label="Version note" placeholder="Version note (optional)" value={note} onChange={(e) => setNote(e.target.value)} className="w-44 rounded-md border border-border bg-surface2 px-2 py-1 text-sm" />
-            <button onClick={save} disabled={saving === "saving"} className="rounded-md bg-accent px-3 py-1 text-sm font-medium text-bg disabled:opacity-60">
-              {saving === "saving" ? "Saving…" : ed.dirty ? "Save version •" : "Save version"}</button>
+              <button className={btn} onClick={() => { navigator.clipboard?.writeText(window.location.href); setCopied(true); setTimeout(() => setCopied(false), 1500); }}><LinkSimple size={14} />{copied ? "Link copied" : "Copy link"}</button>)}
+            <button className={cn(btn, "max-xl:hidden")} onClick={() => setShowPublish(true)}><UploadSimple size={14} />Publish as blueprint</button>
+            <input aria-label="Version note" placeholder="Version note" value={note} onChange={(e) => setNote(e.target.value)} className="field !h-8 !w-36 max-lg:hidden" />
+            <button onClick={save} disabled={saving === "saving"} className="btn btn-primary btn-sm">
+              <FloppyDisk size={14} weight="bold" />{saving === "saving" ? "Saving..." : ed.dirty ? "Save version •" : "Save version"}</button>
           </>
         )}
-        {readOnly && <span className="text-sm text-muted">Read-only (public design by another user)</span>}
+        {readOnly && <span className="text-xs text-muted">Read-only (public design by another user)</span>}
         {readOnly && token && <button className={btn} onClick={forkPublic}>Fork to my workspace</button>}
-        {saving === "saved" && !ed.dirty && <span role="status" className="text-xs text-good">Saved</span>}
-        {err && <span role="alert" className="text-xs text-bad">{err}</span>}
       </div>
       <div className="relative flex min-h-0 flex-1">
         {!readOnly && <Palette onAdd={(c) => add(c)} />}
         <div ref={wrap} className="relative min-w-0 flex-1" onDrop={onDrop} onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}>
           {ed.view === "visual" ? (
             <ReactFlow nodes={shown.nodes} edges={edges} nodeTypes={nodeTypes} onNodesChange={ed.onNodesChange} onEdgesChange={ed.onEdgesChange}
-              onConnect={ed.onConnect} nodesDraggable={!readOnly && !previewing} nodesConnectable={!readOnly && !previewing} elementsSelectable colorMode="system" fitView fitViewOptions={{ maxZoom: 1 }} minZoom={0.2}
+              onConnect={ed.onConnect} nodesDraggable={!readOnly && !previewing} nodesConnectable={!readOnly && !previewing} elementsSelectable colorMode="dark" fitView fitViewOptions={{ maxZoom: 1, padding: 0.2 }} minZoom={0.2}
               deleteKeyCode={readOnly || previewing ? null : ["Backspace", "Delete"]}
-              onSelectionChange={onSelectionChange}>
-              <Background /><Controls showInteractive={false} /><MiniMap pannable zoomable />
+              onSelectionChange={onSelectionChange} proOptions={{ hideAttribution: false }}>
+              <Background gap={22} size={1} /><Controls showInteractive={false} />
+              <MiniMap pannable zoomable nodeColor="var(--surface-3)" nodeStrokeColor="var(--border-strong)" maskColor="rgb(0 0 0 / 0.45)" />
             </ReactFlow>
           ) : <TechnicalView />}
           {ed.view === "visual" && ed.nodes.length === 0 && (
-            <p className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-muted">Drag a technology from the library to start designing.</p>
+            <div className="pointer-events-none absolute inset-0 grid place-items-center">
+              <div className="text-center"><p className="font-medium">Start with a technology</p><p className="mt-1 text-sm text-muted">Drag one from the library, or click it to add.</p></div>
+            </div>
           )}
           {showHistory && <History id={id} token={token!} current={arch.latest_version} onClose={() => setShowHistory(false)}
             onRestored={() => { setShowHistory(false); setReload((r) => r + 1); }} />}
         </div>
         {showPublish && <PublishDialog architectureId={id} defaultTitle={title} token={token!} dirty={ed.dirty} onClose={() => setShowPublish(false)} />}
-        <div className="flex h-full w-80 shrink-0 flex-col border-l border-border bg-surface">
-          <div className="flex border-b border-border text-sm" role="tablist">
+        <div className="flex h-full w-[22rem] shrink-0 flex-col border-l hairline bg-surface max-lg:hidden">
+          <div className="flex border-b hairline text-[13px]" role="tablist">
             {(["inspector", "assistant"] as const).filter((t) => t === "inspector" || !readOnly).map((t) => (
-              <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)} className={cn("flex-1 py-2 capitalize", tab === t ? "border-b-2 border-accent text-fg" : "text-muted")}>{t}</button>
+              <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)} className={cn("relative flex-1 py-2.5 capitalize transition-colors duration-150", tab === t ? "text-fg" : "text-muted hover:text-fg")}>
+                {t === "assistant" && <Sparkle size={13} weight="fill" className="mr-1.5 inline text-accent" />}{t}
+                {tab === t && <motion.span layoutId="rail-tab" transition={{ type: "spring", duration: 0.3, bounce: 0.1 }} className="absolute inset-x-3 bottom-0 h-0.5 rounded bg-accent" />}
+              </button>
             ))}
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto">

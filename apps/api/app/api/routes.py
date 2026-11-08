@@ -142,7 +142,8 @@ def feed(event_type: str | None = None, window: str = Query("30d", pattern="^(24
         sc, why = score(e.event_type, e.detected_at, t.id in followed, t.category_id in interests,
                         in_architecture=t.slug in usage)
         cards.append({"id": e.id, "type": e.event_type, "title": e.event_title, "description": t.description,
-                      "technology": {"slug": t.slug, "name": t.name, "category": t.category.slug},
+                      "technology": {"slug": t.slug, "name": t.name, "category": t.category.slug,
+                                     "repository_url": repo.repository_url if repo else None},
                       "source": repo.source_platform if repo else None, "source_url": e.source_url,
                       "detected_at": e.detected_at, "metadata": e.event_metadata,
                       "metrics": {"stars": repo.stars if repo else None, "forks": repo.forks if repo else None,

@@ -89,7 +89,10 @@ def _card(bp: Blueprint) -> dict:
             "status": bp.status, "curated": bp.curated, "version": bp.version, "fork_count": bp.fork_count,
             "components": len(comps), "technologies": sorted({n["technology"] for n in comps if n.get("technology")}),
             "author": {"id": bp.author_id, "username": bp.author.username or "anonymous"},
-            "published_at": bp.published_at}
+            "published_at": bp.published_at,
+            "thumb": {"nodes": [{"x": n["position"]["x"], "y": n["position"]["y"], "t": (n.get("data") or {}).get("component_type")} for n in comps],
+                      "edges": [[e["source"], e["target"]] for e in g["edges"]],
+                      "ids": [n["id"] for n in comps]}}
 
 
 def _snapshot(db: Session, a: Architecture) -> Graph:

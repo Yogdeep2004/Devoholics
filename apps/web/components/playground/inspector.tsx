@@ -1,4 +1,5 @@
 "use client";
+import { Star } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useApi } from "@/lib/use-api";
 import type { Report, TechProfile, TechSummary } from "@/lib/types";
@@ -9,8 +10,8 @@ import { TYPE_META } from "./nodes";
 
 const CONNECTIONS = ["http_api", "database_connection", "llm_inference", "embedding_generation", "retrieval",
   "tool_invocation", "mcp_communication", "event_streaming", "authentication", "data_ingestion", "custom"];
-const inp = "w-full rounded-md border border-border bg-surface2 px-2 py-1.5 text-sm";
-const Label = ({ t, children }: { t: string; children: React.ReactNode }) => <label className="block space-y-1 text-xs text-muted">{t}{children}</label>;
+const inp = "field";
+const Label = ({ t, children }: { t: string; children: React.ReactNode }) => <label className="block space-y-1.5 text-xs text-muted">{t}{children}</label>;
 
 export function TechInspector({ slug, onReplace }: { slug: string; onReplace?: (slug: string) => void }) {
   const { data: t } = useApi<TechProfile>(`/technologies/${slug}`);
@@ -21,7 +22,7 @@ export function TechInspector({ slug, onReplace }: { slug: string; onReplace?: (
   return (
     <section className="space-y-2 border-t border-border pt-3" aria-label="Technology inspector">
       <div className="flex items-center justify-between"><h3 className="text-sm font-medium">{t.name}</h3>
-        <Link href={`/t/${t.slug}`} target="_blank" className="text-xs text-accent hover:underline">Full profile ↗</Link></div>
+        <Link href={`/t/${t.slug}`} target="_blank" className="text-xs text-accent hover:underline">Full profile</Link></div>
       <p className="line-clamp-3 text-xs text-muted">{t.description ?? "No description recorded."}</p>
       <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
         <dt className="text-muted">License</dt><dd>{t.license ?? "unknown"}</dd>
@@ -31,9 +32,9 @@ export function TechInspector({ slug, onReplace }: { slug: string; onReplace?: (
         <dt className="text-muted">7d growth</dt><dd>{String(sig("momentum", "stars_gained_7d")?.value ?? "no history yet")}</dd>
       </dl>
       <div className="flex flex-wrap gap-3 text-xs">
-        {t.documentation_url && <a className="text-accent hover:underline" href={t.documentation_url} target="_blank" rel="noreferrer">Docs ↗</a>}
-        {t.repository_url && <a className="text-accent hover:underline" href={t.repository_url} target="_blank" rel="noreferrer">GitHub ↗</a>}
-        {t.official_url && <a className="text-accent hover:underline" href={t.official_url} target="_blank" rel="noreferrer">Website ↗</a>}
+        {t.documentation_url && <a className="text-accent hover:underline" href={t.documentation_url} target="_blank" rel="noreferrer">Docs</a>}
+        {t.repository_url && <a className="text-accent hover:underline" href={t.repository_url} target="_blank" rel="noreferrer">GitHub</a>}
+        {t.official_url && <a className="text-accent hover:underline" href={t.official_url} target="_blank" rel="noreferrer">Website</a>}
       </div>
       <div>
         <div className="mb-1 text-xs text-muted">Alternatives in {t.category}</div>
@@ -41,8 +42,8 @@ export function TechInspector({ slug, onReplace }: { slug: string; onReplace?: (
           {(alts.data ?? []).filter((a) => a.slug !== t.slug).slice(0, 4).map((a) => (
             <li key={a.slug} className="flex items-center justify-between gap-2 text-xs">
               <Link href={`/t/${a.slug}`} target="_blank" className="truncate hover:underline">{a.name}</Link>
-              <span className="flex items-center gap-2 text-muted">★ {compact(a.stars)}
-                {onReplace && <button onClick={() => onReplace(a.slug)} className="rounded border border-border px-1.5 hover:text-fg">Replace</button>}</span>
+              <span className="flex items-center gap-2 text-muted"><Star size={12} weight="fill" />{compact(a.stars)}
+                {onReplace && <button onClick={() => onReplace(a.slug)} className="btn btn-sm !h-6 !px-2">Replace</button>}</span>
             </li>
           ))}
         </ul>
@@ -60,8 +61,8 @@ export function Inspector({ report, onReplace }: { report: Report | null; onRepl
       {node && (
         <>
           <div className="flex items-center justify-between"><h2 className="text-sm font-semibold capitalize">{node.type}</h2>
-            <div className="flex gap-2 text-xs"><button onClick={duplicateSelected} className="text-muted hover:text-fg">Duplicate</button>
-              <button onClick={deleteSelected} className="text-bad hover:underline">Delete</button></div></div>
+            <div className="flex gap-2 text-xs"><button onClick={duplicateSelected} className="btn btn-sm">Duplicate</button>
+              <button onClick={deleteSelected} className="btn btn-sm !text-bad">Delete</button></div></div>
           <Label t="Label"><input className={inp} value={node.data.label} onChange={(e) => patchNode(node.id, { label: e.target.value })} /></Label>
           {node.type === "component" && <Label t="Layer (free text, e.g. Data, Serving)"><input className={inp} value={node.data.layer ?? ""} onChange={(e) => patchNode(node.id, { layer: e.target.value || null })} /></Label>}
           <Label t="Notes"><textarea className={inp} rows={3} value={node.data.notes} onChange={(e) => patchNode(node.id, { notes: e.target.value })} /></Label>
@@ -72,7 +73,7 @@ export function Inspector({ report, onReplace }: { report: Report | null; onRepl
       {edge && (
         <>
           <div className="flex items-center justify-between"><h2 className="text-sm font-semibold">Connection</h2>
-            <button onClick={deleteSelected} className="text-xs text-bad hover:underline">Delete</button></div>
+            <button onClick={deleteSelected} className="btn btn-sm !text-bad">Delete</button></div>
           <Label t="Type"><select className={inp} value={edge.data?.connection_type} onChange={(e) => patchEdge(edge.id, { connection_type: e.target.value })}>
             {CONNECTIONS.map((c) => <option key={c} value={c}>{c.replace(/_/g, " ")}</option>)}</select></Label>
           <Label t="Label"><input className={inp} value={edge.data?.label ?? ""} onChange={(e) => patchEdge(edge.id, { label: e.target.value })} /></Label>
@@ -100,7 +101,7 @@ export function Issues({ report }: { report: Report | null }) {
       <ul className="space-y-1">
         {report.issues.map((i, k) => (
           <li key={k}><button onClick={() => i.ref && nodes.some((n) => n.id === i.ref) && setSelected({ kind: "node", id: i.ref })}
-            className={`w-full rounded border px-2 py-1 text-left text-xs ${i.level === "error" ? "border-bad/40 text-bad" : "border-warn/40 text-warn"}`}>{i.message}</button></li>
+            className={`w-full rounded-lg border px-2.5 py-2 text-left text-xs transition-colors duration-150 ${i.level === "error" ? "border-bad/40 text-bad hover:bg-bad/10" : "border-warn/40 text-warn hover:bg-warn/10"}`}>{i.message}</button></li>
         ))}
       </ul>
     </section>

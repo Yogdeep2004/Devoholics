@@ -71,7 +71,9 @@ def test_submission_is_pending_and_invisible_until_approved(env):
     who["anon"] = True
     pub = c.get(f"/api/v1/blueprints/{slug}").json()
     assert pub["author"]["username"] == "ann" and pub["curated"] is False and "reviewed it for policy" in pub["notice"]
-    assert [x["slug"] for x in c.get("/api/v1/blueprints").json()] == [slug]
+    card = c.get("/api/v1/blueprints").json()[0]
+    assert card["slug"] == slug and card["thumb"]["ids"] == ["api", "db"] and card["thumb"]["edges"] == [["api", "db"]]  # drives the card preview
+    assert [n["t"] for n in card["thumb"]["nodes"]] == ["backend", "database"]  # types derived server-side
     assert {x["slug"] for x in pub["component_facts"]} == {"fastapi", "postgres"} and pub["components"] == 2  # verified facts, not author claims
 
 

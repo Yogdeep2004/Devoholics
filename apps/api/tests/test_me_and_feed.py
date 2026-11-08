@@ -69,6 +69,7 @@ def test_feed_boosts_and_scopes_to_technologies_in_my_architectures():
     top = cards[0]
     assert top["technology"]["slug"] == "b" and top["used_in"] == [{"architecture_id": "a1", "title": "My RAG", "node_id": "n1"}]
     assert "used in one of your saved architectures" in top["reasons"]
+    assert "repository_url" in top["technology"]  # lets the UI show the owner's real avatar
     mine = c.get("/api/v1/feed?scope=mine").json()
     assert [x["technology"]["slug"] for x in mine] == ["b"]
     app.dependency_overrides[optional_user_id] = lambda: None

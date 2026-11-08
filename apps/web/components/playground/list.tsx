@@ -1,4 +1,5 @@
 "use client";
+import { Plus, X } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -25,7 +26,7 @@ export function PlaygroundHome() {
   if (!token) return (
     <div className="py-16 text-center">
       <p className="text-muted">Sign in to design and save architectures.</p>
-      <Link href="/login" className="mt-3 inline-block rounded-md bg-accent px-4 py-2 text-sm font-medium text-bg">Sign in</Link>
+      <Link href="/login" className="btn btn-primary mt-4 h-10 px-5 text-sm">Sign in</Link>
     </div>
   );
   const create = async (collection_id?: string) => {
@@ -43,19 +44,19 @@ export function PlaygroundHome() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div><h1 className="text-2xl font-semibold tracking-tight">Architecture Playground</h1>
+        <div><h1 className="display text-3xl">Playground</h1>
           <p className="text-sm text-muted">Design systems from real technologies in the DEVOHOLICS database. Private by default; every save is a version.</p></div>
-        <button onClick={() => create()} className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-bg">New architecture</button>
+        <button onClick={() => create()} className="btn btn-primary h-10 px-5 text-sm"><Plus size={15} weight="bold" />New architecture</button>
       </div>
       {err && <p role="alert" className="text-sm text-bad">{err}</p>}
       <section className="space-y-2" aria-label="Collections">
         <div className="flex flex-wrap items-center gap-2">
           {(cols.data ?? []).map((c) => (
             <Badge key={c.id} className="gap-2">{c.name}
-              <button aria-label={`Delete collection ${c.name}`} onClick={() => act(`/collections/${c.id}`, "DELETE", `Delete collection "${c.name}"? Its architectures are kept.`)} className="hover:text-bad">✕</button></Badge>
+              <button aria-label={`Delete collection ${c.name}`} onClick={() => act(`/collections/${c.id}`, "DELETE", `Delete collection "${c.name}"? Its architectures are kept.`)} className="hover:text-bad"><X size={12} /></button></Badge>
           ))}
           <input value={colName} onChange={(e) => setColName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addCol()} placeholder="New collection…" aria-label="New collection name"
-            className="rounded-md border border-border bg-surface px-2 py-1 text-sm" />
+            className="field !h-8 !w-48 !text-[13px]" />
         </div>
       </section>
       {!archs.data ? <Skeleton /> : archs.data.length === 0 ? (
@@ -63,16 +64,16 @@ export function PlaygroundHome() {
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {archs.data.map((a) => (
-            <Card key={a.id} className="space-y-2">
+            <Card key={a.id} className="lift space-y-3">
               <div className="flex items-start justify-between gap-2">
                 <Link href={`/playground/${a.id}`} className="font-medium hover:underline">{a.title}</Link>
                 <Badge>{a.visibility}</Badge>
               </div>
-              <div className="text-xs text-muted">v{a.latest_version} · updated {timeAgo(a.updated_at)}{colOf(a.collection_id) ? ` · ${colOf(a.collection_id)}` : ""}</div>
+              <div className="num text-xs text-muted">v{a.latest_version}, updated {timeAgo(a.updated_at)}{colOf(a.collection_id) ? `, ${colOf(a.collection_id)}` : ""}</div>
               <div className="flex gap-3 text-xs">
-                <Link href={`/playground/${a.id}`} className="text-accent hover:underline">Open</Link>
-                <button onClick={() => act(`/architectures/${a.id}/duplicate`, "POST")} className="text-muted hover:text-fg">Duplicate</button>
-                <button onClick={() => act(`/architectures/${a.id}`, "DELETE", `Delete "${a.title}" and all its versions? This cannot be undone.`)} className="text-bad hover:underline">Delete</button>
+                <Link href={`/playground/${a.id}`} className="btn btn-sm">Open</Link>
+                <button onClick={() => act(`/architectures/${a.id}/duplicate`, "POST")} className="btn btn-sm">Duplicate</button>
+                <button onClick={() => act(`/architectures/${a.id}`, "DELETE", `Delete "${a.title}" and all its versions? This cannot be undone.`)} className="btn btn-sm !text-bad">Delete</button>
               </div>
             </Card>
           ))}

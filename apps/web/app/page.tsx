@@ -1,16 +1,18 @@
 import { Feed } from "@/components/feed";
+import { Hero, Stats } from "@/components/hero";
 
 export default function Home() {
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">What&apos;s changing in the ecosystem</h1>
-        <p className="mt-1 text-sm text-muted">
-          Releases and maintenance signals from GitHub, package registries and the MCP registry. Ranking is transparent: open
-          &ldquo;Why am I seeing this?&rdquo; on any card. Sign in to boost technologies you follow.
-        </p>
-      </div>
-      <Feed />
-    </div>
+    <>
+      <Hero />
+      <Stats />
+      <section aria-labelledby="signals" className="space-y-6">
+        <div>
+          <h2 id="signals" className="display text-2xl">Latest signals</h2>
+          <p className="mt-1 max-w-xl text-sm text-muted">Releases and maintenance changes across the ecosystem. Every ranking is explained on the card.</p>
+        </div>
+        <Feed />
+      </section>
+    </>
   );
 }

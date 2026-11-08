@@ -26,7 +26,7 @@ afterEach(() => { vi.unstubAllGlobals(); urls.length = 0; });
 describe("utils", () => {
   it("formats numbers and unknowns", () => {
     expect(compact(12345)).toBe("12.3K");
-    expect(compact(null)).toBe("—");
+    expect(compact(null)).toBe("n/a");  // never an em-dash, never a fake zero
     expect(timeAgo(null)).toBe("unknown");
   });
 });
@@ -34,9 +34,9 @@ describe("utils", () => {
 describe("FeedCard", () => {
   it("shows reasons, honest missing growth, and source link", () => {
     render(<FeedCard c={card} />);
-    expect(screen.getByText("7d: no history yet")).toBeInTheDocument();
+    expect(screen.getByText("no history")).toBeInTheDocument();  // honest about missing growth data
     expect(screen.getByText("recency +30.0")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Source/ })).toHaveAttribute("href", "https://example.com/r");
+    expect(screen.getByRole("link", { name: /Open source for FastAPI/ })).toHaveAttribute("href", "https://example.com/r");
   });
 });
 
@@ -85,5 +85,14 @@ describe("api error description", () => {
     expect(d({ message: "failed", errors: [{ message: "Node 'ghost' does not exist" }] }, "x")).toBe("failed: Node 'ghost' does not exist");
     expect(d({ message: "bad", report: { issues: [{ level: "error", message: "dup" }, { level: "warning", message: "w" }] } }, "x")).toBe("bad: dup");
     expect(d(undefined, "fallback")).toBe("fallback");
+  });
+});
+
+
+describe("plain()", () => {
+  it("strips emoji and dashes from third-party descriptions", async () => {
+    const { plain } = await import("@/lib/utils");
+    expect(plain("\u{1F9D1}\u200D\u{1F680} Move fast \u2014 break nothing")).toBe("Move fast - break nothing");
+    expect(plain(null)).toBe("");
   });
 });

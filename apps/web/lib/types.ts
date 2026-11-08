@@ -16,7 +16,7 @@ export type TechProfile = TechSummary & {
 };
 export type FeedCardT = {
   id: number; type: string; title: string; description: string | null;
-  technology: { slug: string; name: string; category: string };
+  technology: { slug: string; name: string; category: string; repository_url?: string | null };
   source: string | null; source_url: string | null; detected_at: string;
   metrics: { stars: number | null; forks: number | null; stars_gained_7d: number | null };
   used_in: { architecture_id: string; title: string; node_id: string }[];
@@ -66,6 +66,7 @@ export type BlueprintCard = {
   status: "pending" | "published" | "rejected" | "removed"; curated: boolean; version: number; fork_count: number;
   components: number; technologies: string[]; author: { id: string; username: string }; published_at: string | null;
   moderation_note?: string | null;
+  thumb: { nodes: { x: number; y: number; t: string | null }[]; edges: [string, string][]; ids: string[] };
 };
 export type BlueprintDetail = BlueprintCard & {
   graph: Graph; changelog: string | null; data_flows: string[]; integration_notes: { from: string; to: string; explanation: string }[];

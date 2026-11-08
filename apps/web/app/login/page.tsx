@@ -1,7 +1,6 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Card } from "@/components/ui";
 import { supabase } from "@/lib/supabase";
 
 export default function Login() {
@@ -22,19 +21,28 @@ export default function Login() {
     if (data.session) router.push("/library");
     else setMsg("Check your email to confirm your account, then sign in.");
   }
-  const input = "w-full rounded-md border border-border bg-surface2 px-3 py-2 text-sm";
   return (
-    <Card className="mx-auto mt-8 max-w-sm">
-      <h1 className="mb-4 text-xl font-semibold">{mode === "in" ? "Sign in" : "Create account"}</h1>
-      <form onSubmit={submit} className="space-y-3">
-        <label className="block text-sm">Email<input className={input} type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" /></label>
-        <label className="block text-sm">Password<input className={input} type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={mode === "in" ? "current-password" : "new-password"} /></label>
-        {msg && <p role="alert" className="text-sm text-warn">{msg}</p>}
-        <button disabled={busy} className="w-full rounded-md bg-accent px-3 py-2 text-sm font-medium text-bg disabled:opacity-60">{busy ? "Please wait…" : mode === "in" ? "Sign in" : "Sign up"}</button>
-      </form>
-      <button className="mt-3 text-sm text-muted hover:text-fg" onClick={() => setMode(mode === "in" ? "up" : "in")}>
-        {mode === "in" ? "No account? Create one" : "Have an account? Sign in"}
-      </button>
-    </Card>
+    <div className="relative isolate -mt-8 grid min-h-[calc(100dvh-3.5rem)] items-center gap-12 py-12 lg:grid-cols-[1.1fr_1fr]">
+      <div aria-hidden className="hero-art pointer-events-none absolute inset-0 -z-10 bg-cover bg-[position:35%_50%] opacity-60 max-lg:hidden" style={{ backgroundImage: "url(/art/signal-field.png)" }} />
+      <div className="max-lg:hidden">
+        <h2 className="display max-w-md text-4xl">Design your stack with the data in front of you.</h2>
+        <p className="mt-4 max-w-sm text-[15px] text-muted">Save tools, follow what matters, and build architectures the assistant can review but never change without you.</p>
+      </div>
+      <div className="w-full max-w-sm rounded-xl border border-border-strong bg-surface/90 p-6 shadow-[0_24px_64px_-24px_rgb(0_0_0/0.8)] backdrop-blur lg:justify-self-end">
+        <h1 className="display text-2xl">{mode === "in" ? "Sign in" : "Create account"}</h1>
+        <form onSubmit={submit} className="mt-5 space-y-4">
+          <label className="block space-y-1.5 text-[13px] text-muted">Email
+            <input className="field" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" /></label>
+          <label className="block space-y-1.5 text-[13px] text-muted">Password
+            <input className="field" type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={mode === "in" ? "current-password" : "new-password"} />
+            {mode === "up" && <span className="block text-xs text-faint">At least 8 characters.</span>}</label>
+          {msg && <p role="alert" className="text-[13px] text-warn">{msg}</p>}
+          <button disabled={busy} className="btn btn-primary h-10 w-full text-sm">{busy ? "Please wait..." : mode === "in" ? "Sign in" : "Sign up"}</button>
+        </form>
+        <button className="mt-4 text-[13px] text-muted transition-colors duration-150 hover:text-fg" onClick={() => setMode(mode === "in" ? "up" : "in")}>
+          {mode === "in" ? "No account? Create one" : "Have an account? Sign in"}
+        </button>
+      </div>
+    </div>
   );
 }
