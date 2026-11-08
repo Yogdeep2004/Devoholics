@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { fromGraph, toGraph } from "@/lib/playground/convert";
+import { fromGraph, measuredFor, toGraph } from "@/lib/playground/convert";
 import { useEditor } from "@/lib/playground/store";
 import type { Component, Graph } from "@/lib/types";
 
@@ -123,5 +123,18 @@ describe("canvas action icons (store)", () => {
     useEditor.getState().toggleLock(a);
     useEditor.getState().load({ nodes: [], edges: [] });
     expect(useEditor.getState().locked).toEqual({});
+  });
+});
+
+
+describe("AI preview nodes stay visible", () => {
+  const node = (id: string, type: string, extra = {}) => ({ id, type, position: { x: 0, y: 0 }, data: { label: id } as never, ...extra }) as never;
+  it("reuses the measured size of an existing node", () => {
+    expect(measuredFor(node("a", "component"), [node("a", "component", { measured: { width: 171, height: 52 } })])).toEqual({ width: 171, height: 52 });
+  });
+  it("falls back to sensible sizes for brand-new nodes, so React Flow does not hide them", () => {
+    expect(measuredFor(node("new", "component"), [])).toEqual({ width: 190, height: 56 });
+    expect(measuredFor(node("g", "group", { style: { width: 400, height: 260 } }), [])).toEqual({ width: 400, height: 260 });
+    expect(measuredFor(node("n", "note"), [])).toEqual({ width: 190, height: 70 });
   });
 });

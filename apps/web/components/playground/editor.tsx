@@ -9,7 +9,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { ArchFull, Component, Report, VersionRow } from "@/lib/types";
-import { fromGraph } from "@/lib/playground/convert";
+import { fromGraph, measuredFor } from "@/lib/playground/convert";
 import { useEditor } from "@/lib/playground/store";
 import { cn } from "@/lib/utils";
 import { ErrorNote, Skeleton } from "../ui";
@@ -123,7 +123,10 @@ function Inner({ id }: { id: string }) {
     const d = ed.preview.diff;
     const mark = (c: string) => ({ outline: `2px solid ${c}`, outlineOffset: 2, borderRadius: 10 });
     return {
+      // Preview nodes are new objects, so React Flow has no measurement for them and keeps them visibility:hidden.
+      // Reuse the size we already measured for the same node, or a sensible default for brand-new ones.
       nodes: nodes.map((n) => ({ ...n, draggable: false, selectable: false,
+        measured: measuredFor(n, ed.nodes),
         style: { ...n.style, ...(d.added_nodes.includes(n.id) ? mark("var(--good)") : d.removed_nodes.includes(n.id) ? { ...mark("var(--bad)"), opacity: 0.45 } : d.changed_nodes.includes(n.id) ? mark("var(--warn)") : {}) } })),
       edges: edges.map((e) => ({ ...e, selectable: false, ...(d.added_edges.includes(e.id) ? { animated: true } : {}),
         style: d.removed_edges.includes(e.id) ? { stroke: "var(--bad)", strokeDasharray: "2 4", opacity: 0.6 } : undefined })),

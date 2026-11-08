@@ -54,3 +54,13 @@ export function layeredLayout(g: Graph, dx = 224, dy = 84): Graph {
   for (const [d, ids] of cols) ids.forEach((id, i) => pos.set(id, { x: d * dx, y: (i + (maxRows - ids.length) / 2) * dy }));
   return { ...g, nodes: comps.map((n) => ({ ...n, parent: null, position: pos.get(n.id) ?? n.position })) };
 }
+
+
+/** Preview nodes are brand-new objects, so React Flow has no measurement and leaves them visibility:hidden.
+ *  Reuse the size already measured for the same node id, or a sensible default for a node that did not exist before. */
+export function measuredFor(n: RFNode, existing: RFNode[]): { width: number; height: number } {
+  const known = existing.find((o) => o.id === n.id)?.measured;
+  if (known?.width && known?.height) return { width: known.width, height: known.height };
+  if (n.type === "group") return { width: Number(n.style?.width ?? 360), height: Number(n.style?.height ?? 240) };
+  return n.type === "note" ? { width: 190, height: 70 } : { width: 190, height: 56 };
+}
