@@ -194,3 +194,17 @@ def test_saved_graphs_get_component_types_derived_from_technology(env):
     g = {"nodes": [node("s", "postgres", component_type="storage")], "edges": []}
     a2 = c.post("/api/v1/architectures", json={"title": "o", "graph": g}).json()["id"]
     assert c.get(f"/api/v1/architectures/{a2}").json()["graph"]["nodes"][0]["data"]["component_type"] == "storage"
+
+
+def test_components_type_filter_is_applied_before_the_limit(env):
+    """Regression: the replace menu asked for 9 databases and got none because LIMIT ran before the type filter."""
+    c, _, eng = env
+    with Session(eng) as s:
+        fe = s.scalar(__import__("sqlalchemy").select(m.Category).where(m.Category.slug == "frontend"))
+        for i in range(12):  # many more-starred non-database techs
+            t = m.Technology(name=f"fe{i}", slug=f"fe{i}", category_id=fe.id); s.add(t); s.flush()
+            s.add(m.Repository(technology_id=t.id, source_platform="github", external_id=f"x{i}", repository_url=f"https://github.com/o/fe{i}", stars=10_000 + i))
+        s.commit()
+    got = c.get("/api/v1/components?component_type=database&limit=3").json()
+    assert [x["slug"] for x in got] == ["postgres"]
+    assert c.get("/api/v1/components?component_type=api&limit=3").json() == []  # a type with no catalogue entries is genuinely empty

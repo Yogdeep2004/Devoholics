@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useApi } from "@/lib/use-api";
 import type { Component } from "@/lib/types";
 import { useEditor } from "@/lib/playground/store";
-import { TYPE_META } from "./nodes";
+import { TYPE_META } from "./type-meta";
 
 export function Palette({ onAdd }: { onAdd: (c: Component) => void }) {
   const [q, setQ] = useState("");

@@ -1,4 +1,4 @@
-import { TYPE_META } from "../playground/nodes";
+import { TYPE_META } from "../playground/type-meta";
 import type { BlueprintCard } from "@/lib/types";
 
 /** A small SVG drawn from the blueprint's real graph (positions, component types, connections). */

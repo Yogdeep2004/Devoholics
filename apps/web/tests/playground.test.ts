@@ -68,3 +68,60 @@ describe("editor store", () => {
     expect(useEditor.getState().dirty).toBe(false);
   });
 });
+
+describe("canvas action icons (store)", () => {
+  const two = () => {
+    const st = useEditor.getState();
+    const a = st.addComponent(comp("a"), { x: 0, y: 0 });
+    const b = st.addComponent(comp("b"), { x: 200, y: 0 });
+    st.onConnect({ source: a, target: b, sourceHandle: null, targetHandle: null });
+    return { a, b, e: useEditor.getState().edges[0].id };
+  };
+
+  it("duplicateNode copies one node, offsets it, selects the copy, and leaves edges alone", () => {
+    const { a } = two();
+    useEditor.getState().duplicateNode(a);
+    const s = useEditor.getState();
+    expect(s.nodes).toHaveLength(3);
+    const copy = s.nodes.at(-1)!;
+    expect(copy.id).not.toBe(a);
+    expect(copy.data.label).toBe("A copy");
+    expect(copy.position).toEqual({ x: 44, y: 44 });
+    expect(s.selected).toEqual({ kind: "node", id: copy.id });
+    expect(s.edges).toHaveLength(1);
+  });
+
+  it("deleteNode removes the node and every connection touching it", () => {
+    const { a, b } = two();
+    useEditor.getState().deleteNode(a);
+    expect(useEditor.getState().nodes.map((n) => n.id)).toEqual([b]);
+    expect(useEditor.getState().edges).toHaveLength(0);
+  });
+
+  it("reverseEdge swaps direction without changing anything else", () => {
+    const { a, b, e } = two();
+    const before = useEditor.getState().edges[0].data;
+    useEditor.getState().reverseEdge(e);
+    const edge = useEditor.getState().edges[0];
+    expect([edge.source, edge.target]).toEqual([b, a]);
+    expect(edge.data).toEqual(before);
+  });
+
+  it("deleteEdge removes only the connection, and toggleLock flips per node", () => {
+    const { a, e } = two();
+    useEditor.getState().deleteEdge(e);
+    expect(useEditor.getState().edges).toHaveLength(0);
+    expect(useEditor.getState().nodes).toHaveLength(2);
+    useEditor.getState().toggleLock(a);
+    expect(useEditor.getState().locked[a]).toBe(true);
+    useEditor.getState().toggleLock(a);
+    expect(useEditor.getState().locked[a]).toBe(false);
+  });
+
+  it("loading another design clears lock state", () => {
+    const { a } = two();
+    useEditor.getState().toggleLock(a);
+    useEditor.getState().load({ nodes: [], edges: [] });
+    expect(useEditor.getState().locked).toEqual({});
+  });
+});

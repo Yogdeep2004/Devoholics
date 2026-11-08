@@ -4,7 +4,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.routes import optional_user_id
-from app.architecture.rules import CONNECTION_TYPES, component_type_for
+from app.architecture.rules import CATEGORY_TO_COMPONENT_TYPE, CONNECTION_TYPES, component_type_for
 from app.architecture.schema import Graph, Node, NodeData, Position
 from app.architecture.validation import normalize_graph, validate_graph
 from app.core.auth import current_user
@@ -53,6 +53,8 @@ def components(q: str | None = None, slug: str | None = None, component_type: st
     stmt = select(Technology).join(Category).outerjoin(Repository).order_by(Repository.stars.desc().nulls_last())
     if featured:
         stmt = stmt.where(Technology.slug.in_(FEATURED_COMPONENTS))
+    if component_type:  # filter in SQL: filtering after LIMIT returned "top N overall, minus other types" (often empty)
+        stmt = stmt.where(Category.slug.in_([c for c, t in CATEGORY_TO_COMPONENT_TYPE.items() if t == component_type]))
     if slug:
         stmt = stmt.where(Technology.slug == slug)
     if q:

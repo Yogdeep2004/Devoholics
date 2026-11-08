@@ -11,6 +11,13 @@ type State = {
   nodes: RFNode[]; edges: RFEdge[]; selected: Sel; dirty: boolean; view: "visual" | "technical";
   report: Report | null; defaultConnection: string;
   preview: { graph: Graph; diff: Diff } | null;
+  editable: boolean; locked: Record<string, boolean>;
+  setEditable: (e: boolean) => void;
+  toggleLock: (id: string) => void;
+  deleteNode: (id: string) => void;
+  duplicateNode: (id: string) => void;
+  deleteEdge: (id: string) => void;
+  reverseEdge: (id: string) => void;
   setPreview: (p: { graph: Graph; diff: Diff } | null) => void;
   load: (g: Graph) => void;
   onNodesChange: (c: NodeChange<RFNode>[]) => void;
@@ -32,9 +39,22 @@ type State = {
 };
 
 export const useEditor = create<State>((set, get) => ({
-  nodes: [], edges: [], selected: null, dirty: false, view: "visual", report: null, defaultConnection: "http_api", preview: null,
+  nodes: [], edges: [], selected: null, dirty: false, view: "visual", report: null, defaultConnection: "http_api", preview: null, editable: true, locked: {},
   setPreview: (preview) => set({ preview }),
-  load: (g) => set({ ...fromGraph(g), selected: null, dirty: false }),
+  load: (g) => set({ ...fromGraph(g), selected: null, dirty: false, locked: {} }),
+  setEditable: (editable) => set((s) => (s.editable === editable ? s : { editable })),
+  toggleLock: (id) => set((s) => ({ locked: { ...s.locked, [id]: !s.locked[id] } })),
+  deleteNode: (id) => set((s) => ({ dirty: true, selected: null,
+    nodes: s.nodes.filter((n) => n.id !== id).map((n) => (n.parentId === id ? { ...n, parentId: undefined } : n)),
+    edges: s.edges.filter((e) => e.source !== id && e.target !== id) })),
+  duplicateNode: (id) => set((s) => {
+    const n = s.nodes.find((x) => x.id === id);
+    if (!n) return s;
+    const copy: RFNode = { ...n, id: uid(n.type ?? "n"), selected: true, parentId: undefined, position: { x: n.position.x + 44, y: n.position.y + 44 }, data: { ...n.data, label: `${n.data.label} copy` } };
+    return { dirty: true, nodes: [...desel(s.nodes), copy], edges: desel(s.edges), selected: { kind: "node", id: copy.id } };
+  }),
+  deleteEdge: (id) => set((s) => ({ dirty: true, selected: null, edges: s.edges.filter((e) => e.id !== id) })),
+  reverseEdge: (id) => set((s) => ({ dirty: true, edges: s.edges.map((e) => (e.id === id ? { ...e, source: e.target, target: e.source } : e)) })),
   onNodesChange: (c) => set((s) => ({
     nodes: applyNodeChanges(c, s.nodes),
     dirty: s.dirty || c.some((x) => x.type !== "select" && x.type !== "dimensions"),

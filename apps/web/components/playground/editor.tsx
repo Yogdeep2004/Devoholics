@@ -1,7 +1,7 @@
 "use client";
 import "@xyflow/react/dist/style.css";
 import { Background, Controls, MiniMap, ReactFlow, ReactFlowProvider, useReactFlow, type OnSelectionChangeParams } from "@xyflow/react";
-import { ArrowLeft, Check, X, ClockCounterClockwise, FloppyDisk, GlobeSimple, LinkSimple, LockSimple, Sparkle, UploadSimple } from "@phosphor-icons/react";
+import { ArrowLeft, ArrowsOutSimple, Check, GridFour, MapTrifold, TextT, X, ClockCounterClockwise, FloppyDisk, GlobeSimple, LinkSimple, LockSimple, Sparkle, UploadSimple } from "@phosphor-icons/react";
 import { motion } from "motion/react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -16,6 +16,7 @@ import { ErrorNote, Skeleton } from "../ui";
 import { PublishDialog } from "../blueprints/publish";
 import { Assistant } from "./assistant";
 import { Inspector } from "./inspector";
+import { edgeTypes } from "./edges";
 import { nodeTypes } from "./nodes";
 import { Palette } from "./palette";
 import { TechnicalView } from "./technical";
@@ -46,6 +47,19 @@ function History({ id, token, current, onRestored, onClose }: { id: string; toke
   );
 }
 
+function CanvasToggles(p: { snap: boolean; setSnap: (v: boolean) => void; labels: boolean; setLabels: (v: boolean) => void; minimap: boolean; setMinimap: (v: boolean) => void }) {
+  const rf = useReactFlow();
+  return (
+    <div className="action-bar absolute left-1/2 top-3 z-10 -translate-x-1/2" role="toolbar" aria-label="Canvas view options">
+      <button className="tool-btn" title="Snap to grid" aria-label="Snap to grid" aria-pressed={p.snap} onClick={() => p.setSnap(!p.snap)}><GridFour size={15} /></button>
+      <button className="tool-btn" title="Connection labels" aria-label="Connection labels" aria-pressed={p.labels} onClick={() => p.setLabels(!p.labels)}><TextT size={15} /></button>
+      <button className="tool-btn" title="Minimap" aria-label="Minimap" aria-pressed={p.minimap} onClick={() => p.setMinimap(!p.minimap)}><MapTrifold size={15} /></button>
+      <span className="tool-sep" />
+      <button className="tool-btn" title="Fit view" aria-label="Fit view" onClick={() => rf.fitView({ padding: 0.2, maxZoom: 1, duration: 250 })}><ArrowsOutSimple size={15} /></button>
+    </div>
+  );
+}
+
 function Inner({ id }: { id: string }) {
   const { token, ready } = useAuth();
   const ed = useEditor();
@@ -58,6 +72,9 @@ function Inner({ id }: { id: string }) {
   const [showHistory, setShowHistory] = useState(false);
   const [showPublish, setShowPublish] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [snap, setSnap] = useState(false);
+  const [labels, setLabels] = useState(true);
+  const [minimap, setMinimap] = useState(true);
   const [title, setTitle] = useState("");
   const [tab, setTab] = useState<"inspector" | "assistant">("inspector");
 
@@ -98,9 +115,10 @@ function Inner({ id }: { id: string }) {
   }, [ed.dirty]);
 
   const readOnly = !!arch && !arch.owner;
+  useEffect(() => { useEditor.getState().setEditable(!readOnly && !ed.preview); }, [readOnly, ed.preview]);
   const previewing = !!ed.preview;
   const shown = useMemo(() => {
-    if (!ed.preview) return { nodes: ed.nodes, edges: ed.edges };
+    if (!ed.preview) return { nodes: ed.nodes.map((n) => (ed.locked[n.id] ? { ...n, draggable: false } : n)), edges: ed.edges };
     const { nodes, edges } = fromGraph(ed.preview.graph);
     const d = ed.preview.diff;
     const mark = (c: string) => ({ outline: `2px solid ${c}`, outlineOffset: 2, borderRadius: 10 });
@@ -110,13 +128,13 @@ function Inner({ id }: { id: string }) {
       edges: edges.map((e) => ({ ...e, selectable: false, ...(d.added_edges.includes(e.id) ? { animated: true } : {}),
         style: d.removed_edges.includes(e.id) ? { stroke: "var(--bad)", strokeDasharray: "2 4", opacity: 0.6 } : undefined })),
     };
-  }, [ed.preview, ed.nodes, ed.edges]);
+  }, [ed.preview, ed.nodes, ed.edges, ed.locked]);
   const edges = useMemo(() => shown.edges.map((e) => {
     const st = ed.report?.edge_status[e.id];
-    return { ...e, label: `${(e.data?.connection_type ?? "").replace(/_/g, " ")}${e.data?.label ? ` · ${e.data.label}` : ""}`,
-      labelStyle: { fontSize: 10, fill: "var(--muted)" }, labelBgStyle: { fill: "var(--bg)" }, labelBgPadding: [4, 2] as [number, number],
+    const text = `${(e.data?.connection_type ?? "").replace(/_/g, " ")}${e.data?.label ? `, ${e.data.label}` : ""}`;
+    return { ...e, type: "action", data: { ...e.data!, displayLabel: labels ? text : "" },
       style: { stroke: st === "verified" ? "var(--good)" : st === "compatible" ? "var(--muted)" : "var(--warn)", strokeDasharray: st === "unverified" ? "5 4" : undefined } };
-  }), [shown.edges, ed.report]);
+  }), [shown.edges, ed.report, labels]);
 
   const onSelectionChange = useCallback(({ nodes, edges: es }: OnSelectionChangeParams) => {
     useEditor.getState().setSelected(nodes[0] ? { kind: "node", id: nodes[0].id } : es[0] ? { kind: "edge", id: es[0].id } : null);
@@ -198,14 +216,15 @@ function Inner({ id }: { id: string }) {
         {!readOnly && <Palette onAdd={(c) => add(c)} />}
         <div ref={wrap} className="relative min-w-0 flex-1" onDrop={onDrop} onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}>
           {ed.view === "visual" ? (
-            <ReactFlow nodes={shown.nodes} edges={edges} nodeTypes={nodeTypes} onNodesChange={ed.onNodesChange} onEdgesChange={ed.onEdgesChange}
+            <ReactFlow nodes={shown.nodes} edges={edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} snapToGrid={snap} snapGrid={[22, 22]} onNodesChange={ed.onNodesChange} onEdgesChange={ed.onEdgesChange}
               onConnect={ed.onConnect} nodesDraggable={!readOnly && !previewing} nodesConnectable={!readOnly && !previewing} elementsSelectable colorMode="dark" fitView fitViewOptions={{ maxZoom: 1, padding: 0.2 }} minZoom={0.2}
               deleteKeyCode={readOnly || previewing ? null : ["Backspace", "Delete"]}
               onSelectionChange={onSelectionChange} proOptions={{ hideAttribution: false }}>
               <Background gap={22} size={1} /><Controls showInteractive={false} />
-              <MiniMap pannable zoomable nodeColor="var(--surface-3)" nodeStrokeColor="var(--border-strong)" maskColor="rgb(0 0 0 / 0.45)" />
+              {minimap && <MiniMap pannable zoomable nodeColor="var(--surface-3)" nodeStrokeColor="var(--border-strong)" maskColor="rgb(0 0 0 / 0.45)" />}
             </ReactFlow>
           ) : <TechnicalView />}
+          {ed.view === "visual" && <CanvasToggles snap={snap} setSnap={setSnap} labels={labels} setLabels={setLabels} minimap={minimap} setMinimap={setMinimap} />}
           {ed.view === "visual" && ed.nodes.length === 0 && (
             <div className="pointer-events-none absolute inset-0 grid place-items-center">
               <div className="text-center"><p className="font-medium">Start with a technology</p><p className="mt-1 text-sm text-muted">Drag one from the library, or click it to add.</p></div>
