@@ -17,12 +17,23 @@ Two Vercel projects from this repo (both under the same account):
 - The AI endpoints can run for up to 60s (`vercel.json` `maxDuration`). Rate limits are per instance (in memory), so treat them as a soft guard.
 - The daily data refresh is **not** a Vercel function: it runs from GitHub Actions (`refresh.yml`).
 
+## Project settings that matter (monorepo)
+Both projects are connected to this GitHub repo and **must have a Root Directory**, otherwise Vercel builds from the repo root and fails
+(`Couldn't find any 'pages' or 'app' directory` for the web app, `FASTAPI_ENTRYPOINT_NOT_FOUND` for the API):
+
+| Project | Settings, General, Root Directory |
+|---|---|
+| `devoholics-web` | `apps/web` |
+| `devoholics-api` | `apps/api` (so `app/main.py` is a default FastAPI entrypoint) |
+
 ## Redeploy
-```bash
-cd apps/api && npx vercel deploy --prod --yes
-cd apps/web && npx vercel deploy --prod --yes
-```
-Changing an env var: `printf '%s' "value" | npx vercel env add NAME production --force`, then redeploy.
+Pushing to `main` deploys both projects automatically. To redeploy without a commit, use the Vercel dashboard (Deployments, Redeploy)
+or `npx vercel redeploy <deployment-url>`.
+
+Do **not** run `vercel deploy` from inside `apps/web` or `apps/api` any more: with a Root Directory set, the CLI would look for
+`apps/web/apps/web`. Deploy from the repository root, or just push.
+
+Changing an env var: `printf '%s' "value" | npx vercel env add NAME production --force`, then redeploy. `NEXT_PUBLIC_*` values are inlined at build time.
 
 ## One manual step: Supabase Auth URLs
 Supabase dashboard, Authentication, URL Configuration: set **Site URL** to the web URL and add it to **Redirect URLs**.
