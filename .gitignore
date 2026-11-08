@@ -10,3 +10,5 @@ node_modules/
 .next/
 *.db
 .DS_Store
+*.egg-info/
+build/
