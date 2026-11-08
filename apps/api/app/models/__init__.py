@@ -195,3 +195,18 @@ class ArchitectureVersion(Base):
     note: Mapped[str | None] = mapped_column(String(300))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     architecture: Mapped[Architecture] = relationship(back_populates="versions")
+
+
+class AISuggestion(Base):
+    __tablename__ = "ai_suggestions"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    architecture_id: Mapped[str] = mapped_column(ForeignKey("architectures.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(30))  # generate | alternatives | optimize
+    prompt: Mapped[str] = mapped_column(Text)
+    base_version: Mapped[int]
+    proposed_changes: Mapped[dict] = mapped_column(JsonType)  # the validated Proposal
+    explanation: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(12), default="pending")  # pending|accepted|rejected
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

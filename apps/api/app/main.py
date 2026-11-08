@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.ai import router as ai_router
 from app.api.architectures import router as arch_router
 from app.api.me import router as me_router
 from app.api.routes import router
@@ -16,6 +17,7 @@ app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins.split(","
 app.include_router(router)
 app.include_router(me_router)
 app.include_router(arch_router)
+app.include_router(ai_router)
 
 
 @app.get("/health")
