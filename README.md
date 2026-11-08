@@ -118,19 +118,7 @@ This recording uses the real model. It can generate an architecture, explain a c
 
 ## How it works
 
-```mermaid
-flowchart TD
-  SRC["Official sources<br/>GitHub API and Search, Hugging Face Hub, MCP registry, npm, PyPI"]
-  SRC --> COL["Python collectors<br/>retries, rate limits, daily snapshots"]
-  COL --> DB[("PostgreSQL on Supabase<br/>technologies, snapshots, releases, architectures, blueprints")]
-  DB --> INT["Intelligence engine<br/>4 signals, growth, feed ranking"]
-  DB --> ARC["Architecture engine<br/>graph validation, versions"]
-  ARC --> AI["AI layer<br/>structured proposals only"]
-  INT --> API["FastAPI"]
-  ARC --> API
-  AI --> API
-  API --> WEB["Next.js app<br/>Feed, Explore, Playground, Blueprints, Library"]
-```
+<img src="docs/assets/architecture.svg" alt="Official sources flow through collectors into one PostgreSQL database, then to the intelligence and architecture engines and the AI layer, through FastAPI to the Next.js app" width="100%">
 
 **The four signals** shown on every technology page:
 
