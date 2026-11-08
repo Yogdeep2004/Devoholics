@@ -4,6 +4,7 @@ from datetime import datetime
 from sqlalchemy import (
     JSON,
     BigInteger,
+    Boolean,
     DateTime,
     ForeignKey,
     Index,
@@ -114,6 +115,7 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(320), unique=True)
     username: Mapped[str | None] = mapped_column(String(50), unique=True)
     avatar_url: Mapped[str | None] = mapped_column(String(500))
+    is_admin: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -179,6 +181,7 @@ class Architecture(Base):
     description: Mapped[str | None] = mapped_column(Text)
     visibility: Mapped[str] = mapped_column(String(10), default="private")  # private | public
     forked_from_id: Mapped[str | None] = mapped_column(String(36))
+    forked_from_blueprint_id: Mapped[str | None] = mapped_column(String(36))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     versions: Mapped[list["ArchitectureVersion"]] = relationship(
@@ -210,3 +213,54 @@ class AISuggestion(Base):
     status: Mapped[str] = mapped_column(String(12), default="pending")  # pending|accepted|rejected
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class Blueprint(Base):
+    __tablename__ = "blueprints"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    slug: Mapped[str] = mapped_column(String(120), unique=True)
+    author_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    title: Mapped[str] = mapped_column(String(200))
+    description: Mapped[str] = mapped_column(Text)
+    difficulty: Mapped[str] = mapped_column(String(15))  # beginner | intermediate | advanced
+    data_flows: Mapped[list] = mapped_column(JsonType, default=list)
+    integration_notes: Mapped[list] = mapped_column(JsonType, default=list)
+    infrastructure_notes: Mapped[str | None] = mapped_column(Text)
+    known_limitations: Mapped[list] = mapped_column(JsonType, default=list)
+    status: Mapped[str] = mapped_column(String(12), default="pending", index=True)  # pending|published|rejected|removed
+    curated: Mapped[bool] = mapped_column(Boolean, default=False)
+    version: Mapped[int] = mapped_column(default=1)
+    fork_count: Mapped[int] = mapped_column(default=0)
+    moderation_note: Mapped[str | None] = mapped_column(Text)
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    author: Mapped["User"] = relationship()
+    versions: Mapped[list["BlueprintVersion"]] = relationship(
+        order_by="BlueprintVersion.version", cascade="all, delete-orphan")
+
+
+class BlueprintVersion(Base):
+    """Immutable graph snapshot, independent of the author's later edits to their own architecture."""
+    __tablename__ = "blueprint_versions"
+    __table_args__ = (UniqueConstraint("blueprint_id", "version"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    blueprint_id: Mapped[str] = mapped_column(ForeignKey("blueprints.id", ondelete="CASCADE"), index=True)
+    version: Mapped[int]
+    graph_json: Mapped[dict] = mapped_column(JsonType)
+    changelog: Mapped[str | None] = mapped_column(String(500))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class BlueprintReport(Base):
+    __tablename__ = "blueprint_reports"
+    __table_args__ = (UniqueConstraint("blueprint_id", "reporter_id"),)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    blueprint_id: Mapped[str] = mapped_column(ForeignKey("blueprints.id", ondelete="CASCADE"), index=True)
+    reporter_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    reason: Mapped[str] = mapped_column(String(20))
+    details: Mapped[str | None] = mapped_column(String(1000))
+    status: Mapped[str] = mapped_column(String(12), default="open", index=True)  # open|dismissed|actioned
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    resolved_by: Mapped[str | None] = mapped_column(String(36))

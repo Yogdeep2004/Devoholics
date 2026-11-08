@@ -96,3 +96,14 @@ def _edge_status(db: Session, e, ctype: dict[str, str], tech_ids: dict[str, int]
     if e.connection_type != "custom" and rule_allows(ctype.get(e.source, ""), ctype.get(e.target, ""), e.connection_type):
         return "compatible"
     return "unverified"
+
+
+def normalize_graph(db: Session, g: Graph) -> Graph:
+    """Fill each component's missing component_type from its technology so every renderer agrees."""
+    g = g.model_copy(deep=True)
+    slugs = {n.technology for n in g.nodes if n.technology}
+    techs = {t.slug: t for t in db.scalars(select(Technology).where(Technology.slug.in_(slugs)))} if slugs else {}
+    for n in g.nodes:
+        if n.kind == "component" and n.data.component_type is None and n.technology in techs:
+            n.data.component_type = component_type_for(techs[n.technology].category.slug)
+    return g

@@ -9,7 +9,6 @@ from app.db import get_db
 from app.intelligence import dimensions as dim
 from app.intelligence.growth import growth
 from app.intelligence.ranking import score
-from app.services.usage import tech_usage
 from app.models import (
     Category,
     FeedEvent,
@@ -22,6 +21,7 @@ from app.models import (
     UserFollow,
     UserInterest,
 )
+from app.services.usage import tech_usage
 
 router = APIRouter(prefix="/api/v1")
 

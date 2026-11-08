@@ -9,6 +9,7 @@ const LINKS: { href: string; label: string; soon?: boolean }[] = [
   { href: "/", label: "Feed" },
   { href: "/explore", label: "Explore" },
   { href: "/playground", label: "Playground" },
+  { href: "/blueprints", label: "Blueprints" },
   { href: "/library", label: "My Library" },
 ];
 

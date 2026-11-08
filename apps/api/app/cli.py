@@ -9,9 +9,10 @@ from app.collectors.github import GitHubClient, RateLimited
 from app.core.config import settings
 from app.core.logging import configure_logging
 from app.db import SessionLocal
-from app.models import Category, Repository, Technology
-from app.seed import CATEGORIES, PACKAGES, TECHS
+from app.models import Repository, Technology, User
+from app.seed import PACKAGES
 from app.services import ingest
+from app.services.seed import seed_catalog
 from app.services.sync import sync_repository
 
 log = structlog.get_logger()
@@ -19,21 +20,8 @@ log = structlog.get_logger()
 
 def seed() -> None:
     with SessionLocal() as db:
-        cats = {}
-        for slug, name in CATEGORIES.items():
-            c = db.scalar(select(Category).where(Category.slug == slug)) or Category(slug=slug, name=name)
-            db.add(c); cats[slug] = c
-        db.flush()
-        for slug, name, cat, repo in TECHS:
-            t = db.scalar(select(Technology).where(Technology.slug == slug))
-            if not t:
-                t = Technology(slug=slug, name=name, category_id=cats[cat].id); db.add(t); db.flush()
-            url = f"https://github.com/{repo}"
-            if not db.scalar(select(Repository).where(Repository.repository_url == url)):
-                db.add(Repository(technology_id=t.id, source_platform="github",
-                                  external_id=f"pending:{repo}", repository_url=url))
-        db.commit()
-        log.info("seeded", technologies=len(TECHS))
+        n = seed_catalog(db)
+        log.info("seeded", technologies=n)
 
 
 def sync() -> None:
@@ -76,6 +64,60 @@ def events() -> None:
         log.info("events", releases=ev.backfill_recent_releases(db), warnings=ev.maintenance_warnings(db))
 
 
+def blueprints() -> None:
+    """Upsert curated blueprints. Each graph must pass the real validator or seeding fails loudly."""
+    from datetime import datetime, timezone
+
+    from app.architecture.schema import Graph
+    from app.architecture.validation import normalize_graph, validate_graph
+    from app.blueprints_seed import BLUEPRINTS
+    from app.models import Blueprint, BlueprintVersion, User
+
+    with SessionLocal() as db:
+        if not db.get(User, "system"):
+            db.add(User(id="system", email="blueprints@devoholics.local", username="devoholics")); db.flush()
+        for b in BLUEPRINTS:
+            g = Graph.model_validate({"nodes": [dict(id=n["id"], kind="component", technology=n["technology"],
+                                                     position={"x": n["x"], "y": n["y"]},
+                                                     data=dict(label=n["label"], layer=n["layer"], component_type=n["ctype"]))
+                                                for n in b["nodes"]],
+                                      "edges": [dict(e) for e in b["edges"]]})
+            g = normalize_graph(db, g)
+            rep = validate_graph(db, g)
+            if rep.errors:
+                raise SystemExit(f"{b['slug']}: " + "; ".join(i.message for i in rep.errors))
+            row = db.scalar(select(Blueprint).where(Blueprint.slug == b["slug"]))
+            notes = [{"from": f, "to": t, "explanation": x} for f, t, x in b["integration"]]
+            if row is None:
+                row = Blueprint(slug=b["slug"], author_id="system", title=b["title"], description=b["description"],
+                                difficulty=b["difficulty"], curated=True, status="published", version=0,
+                                published_at=datetime.now(timezone.utc))
+                db.add(row)
+            row.data_flows, row.integration_notes = b["data_flows"], notes
+            row.infrastructure_notes, row.known_limitations = b["infra"], b["limits"]
+            row.title, row.description, row.difficulty = b["title"], b["description"], b["difficulty"]
+            latest = row.versions[-1] if row.versions else None
+            if latest is not None and normalize_graph(db, Graph.model_validate(latest.graph_json)).model_dump() == g.model_dump():
+                if latest.graph_json != g.model_dump():
+                    latest.graph_json = g.model_dump()  # metadata-only fix (types derived); not a content change
+            elif latest is None or latest.graph_json != g.model_dump():
+                row.version += 1
+                row.versions.append(BlueprintVersion(version=row.version, graph_json=g.model_dump(),
+                                                     changelog="Curated by DEVOHOLICS"))
+            log.info("blueprint", slug=b["slug"], warnings=len([i for i in rep.issues if i.level == "warning"]),
+                     version=row.version)
+        db.commit()
+
+
+def make_admin() -> None:
+    email = sys.argv[2]
+    with SessionLocal() as db:
+        u = db.scalar(select(User).where(User.email == email))
+        if not u:
+            raise SystemExit(f"no user with email {email}; sign in once first")
+        u.is_admin = True; db.commit(); log.info("admin_granted", email=email)
+
+
 def refresh() -> None:
     """Everything a daily cron needs, in order. Each step is idempotent."""
     for step in (sync, packages, models, events):
@@ -97,4 +139,4 @@ def mcp() -> None:
 
 if __name__ == "__main__":
     configure_logging(settings.log_level)
-    {"seed": seed, "sync": sync, "packages": packages, "models": models, "mcp": mcp, "events": events, "refresh": refresh}[sys.argv[1]]()
+    {"seed": seed, "sync": sync, "packages": packages, "models": models, "mcp": mcp, "events": events, "refresh": refresh, "blueprints": blueprints, "make-admin": make_admin}[sys.argv[1]]()

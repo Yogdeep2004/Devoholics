@@ -30,7 +30,7 @@ def _tech(db: Session, slug: str) -> Technology:
 @router.get("")
 def me(user: User = Depends(current_user), db: Session = Depends(get_db)):
     cats = db.scalars(select(Category.slug).join(UserInterest).where(UserInterest.user_id == user.id)).all()
-    return {"id": user.id, "email": user.email, "username": user.username, "avatar_url": user.avatar_url, "interests": cats}
+    return {"id": user.id, "email": user.email, "username": user.username, "avatar_url": user.avatar_url, "is_admin": user.is_admin, "interests": cats}
 
 
 @router.patch("")

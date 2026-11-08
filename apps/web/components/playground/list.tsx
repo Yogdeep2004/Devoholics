@@ -5,7 +5,7 @@ import { useState } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useApi } from "@/lib/use-api";
-import type { ArchMeta } from "@/lib/types";
+import type { ArchMeta, BlueprintCard } from "@/lib/types";
 import { timeAgo } from "@/lib/utils";
 import { Badge, Card, ErrorNote, Skeleton } from "../ui";
 
@@ -17,6 +17,7 @@ export function PlaygroundHome() {
   const [rev, setRev] = useState(0);
   const archs = useApi<ArchMeta[]>(token ? `/architectures?r=${rev}` : null, true);
   const cols = useApi<Col[]>(token ? `/collections?r=${rev}` : null, true);
+  const subs = useApi<BlueprintCard[]>(token ? `/blueprints/mine?r=${rev}` : null, true);
   const [colName, setColName] = useState("");
   const [err, setErr] = useState("");
 
@@ -37,6 +38,7 @@ export function PlaygroundHome() {
   };
   const addCol = async () => { if (!colName.trim()) return; await api("/collections", { method: "POST", token, body: { name: colName.trim() } }); setColName(""); setRev((r) => r + 1); };
   const colOf = (id: string | null) => cols.data?.find((c) => c.id === id)?.name;
+  const subTone: Record<string, string> = { pending: "text-warn", published: "text-good", rejected: "text-bad", removed: "text-bad" };
   if (archs.error) return <ErrorNote msg={archs.error} />;
   return (
     <div className="space-y-6">
@@ -76,6 +78,12 @@ export function PlaygroundHome() {
           ))}
         </div>
       )}
+      {subs.data && subs.data.length > 0 && (
+        <section className="space-y-2" aria-label="My blueprint submissions"><h2 className="font-medium">My blueprint submissions</h2>
+          <ul className="space-y-1">{subs.data.map((b) => (
+            <li key={b.slug} className="flex flex-wrap items-center justify-between gap-2 rounded border border-border p-2 text-sm">
+              <Link href={`/blueprints/${b.slug}`} className="hover:underline">{b.title}</Link>
+              <span className={`text-xs ${subTone[b.status]}`}>{b.status}{b.moderation_note ? ` · ${b.moderation_note}` : ""}</span></li>))}</ul></section>)}
     </div>
   );
 }

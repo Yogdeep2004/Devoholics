@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.ai import router as ai_router
 from app.api.architectures import router as arch_router
+from app.api.blueprints import router as bp_router
 from app.api.me import router as me_router
 from app.api.routes import router
 from app.core.config import settings
@@ -18,6 +19,7 @@ app.include_router(router)
 app.include_router(me_router)
 app.include_router(arch_router)
 app.include_router(ai_router)
+app.include_router(bp_router)
 
 
 @app.get("/health")

@@ -148,6 +148,17 @@ TECHS = [
     ("github-mcp-server", "GitHub MCP Server", "mcp", "github/github-mcp-server"),
     ("supabase-mcp", "Supabase MCP", "mcp", "supabase-community/supabase-mcp"),
     ("mcp-inspector", "MCP Inspector", "mcp", "modelcontextprotocol/inspector"),
+    ("whisper", "Whisper", "llm-inference", "openai/whisper"),
+    ("coqui-tts", "Coqui TTS", "llm-inference", "idiap/coqui-ai-TTS"),
+    ("pipecat", "Pipecat", "agent-frameworks", "pipecat-ai/pipecat"),
+    ("livekit", "LiveKit", "infrastructure", "livekit/livekit"),
+    ("chatwoot", "Chatwoot", "dev-tools", "chatwoot/chatwoot"),
+    ("minio", "MinIO", "infrastructure", "minio/minio"),
+    ("docling", "Docling", "rag", "docling-project/docling"),
+    ("unstructured", "Unstructured", "rag", "Unstructured-IO/unstructured"),
+    ("tesseract", "Tesseract OCR", "dev-tools", "tesseract-ocr/tesseract"),
+    ("ultralytics", "Ultralytics YOLO", "llm-inference", "ultralytics/ultralytics"),
+    ("opencv", "OpenCV", "dev-tools", "opencv/opencv"),
 ]
 
 # (technology slug, registry, package name)

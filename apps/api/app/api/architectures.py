@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.api.routes import optional_user_id
 from app.architecture.rules import CONNECTION_TYPES, component_type_for
 from app.architecture.schema import Graph, Node, NodeData, Position
-from app.architecture.validation import validate_graph
+from app.architecture.validation import normalize_graph, validate_graph
 from app.core.auth import current_user
 from app.db import get_db
 from app.models import (
@@ -102,7 +102,7 @@ def _checked(db: Session, g: Graph):
 
 def _add_version(db: Session, a: Architecture, g: Graph, note: str | None) -> ArchitectureVersion:
     n = (db.scalar(select(func.max(ArchitectureVersion.version_number)).where(ArchitectureVersion.architecture_id == a.id)) or 0) + 1
-    v = ArchitectureVersion(architecture_id=a.id, version_number=n, graph_json=g.model_dump(), note=note)
+    v = ArchitectureVersion(architecture_id=a.id, version_number=n, graph_json=normalize_graph(db, g).model_dump(), note=note)
     a.versions.append(v)
     return v
 

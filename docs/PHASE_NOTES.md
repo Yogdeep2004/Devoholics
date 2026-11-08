@@ -52,6 +52,20 @@ filter); feed cards link to `/playground/{id}?investigate={nodeId}`, which opens
 Assistant tab ready. Nothing is ever auto-replaced; the AI only runs when you click. Release events and verified
 maintenance warnings reach you through the same feed.
 
+## Phase 6 – Blueprints and community (done)
+Eight curated blueprints (RAG, multi-agent research, coding assistant, voice, customer support, AI SaaS, document pipeline,
+computer vision) seeded by `python -m app.cli blueprints`; each graph must pass the real validator or seeding fails.
+Blueprints store immutable versioned graph snapshots (author edits to their own design never change a published blueprint).
+Fork = private editable copy at the latest version (`fork_count` tracked). Community submissions: validated (>=2 components, no
+graph errors, link-spam guard, max 5 pending per user) -> `pending` -> moderator approves/rejects (rejection requires a note).
+New versions of community blueprints return to review. Reports: one per user per blueprint, moderators dismiss or remove
+(curated blueprints can't be removed via reports). Public designs: read-only link + "Fork to my workspace".
+Moderator role: `users.is_admin` via `python -m app.cli make-admin <email>`; page `/admin`.
+Component types are now derived server-side from the technology on every save (clients can still override explicitly).
+Bug fixed along the way: re-running seed after a GitHub rename created duplicate repository rows (now matched by technology).
+Not built (Phase 7, only if demand justifies it): ratings, advanced personalisation, technology radar, relationship graph,
+cost estimation, custom alerts, team workspaces.
+
 ## Run
     cd apps/api && python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"
     cp .env.example .env   # repo root; fill in values (never commit)

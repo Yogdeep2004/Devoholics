@@ -2,7 +2,7 @@
 import "@xyflow/react/dist/style.css";
 import { Background, Controls, MiniMap, ReactFlow, ReactFlowProvider, useReactFlow, type OnSelectionChangeParams } from "@xyflow/react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -11,6 +11,7 @@ import { fromGraph } from "@/lib/playground/convert";
 import { useEditor } from "@/lib/playground/store";
 import { cn } from "@/lib/utils";
 import { ErrorNote, Skeleton } from "../ui";
+import { PublishDialog } from "../blueprints/publish";
 import { Assistant } from "./assistant";
 import { Inspector } from "./inspector";
 import { nodeTypes } from "./nodes";
@@ -53,10 +54,13 @@ function Inner({ id }: { id: string }) {
   const [saving, setSaving] = useState<"idle" | "saving" | "saved">("idle");
   const [note, setNote] = useState("");
   const [showHistory, setShowHistory] = useState(false);
+  const [showPublish, setShowPublish] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [title, setTitle] = useState("");
   const [tab, setTab] = useState<"inspector" | "assistant">("inspector");
 
   const [reload, setReload] = useState(0);
+  const router = useRouter();
   const investigate = useSearchParams().get("investigate");
   useEffect(() => {
     if (!ready) return;
@@ -140,6 +144,10 @@ function Inner({ id }: { id: string }) {
       setArch((a) => (a ? { ...a, title, latest_version: a.latest_version + 1 } : a));
     } catch (e) { setSaving("idle"); setErr((e as Error).message); }
   };
+  const forkPublic = async () => {
+    try { const r = await api<{ architecture_id: string }>(`/architectures/${id}/fork`, { method: "POST", token }); router.push(`/playground/${r.architecture_id}`); }
+    catch (e) { setErr((e as Error).message); }
+  };
   const setVisibility = async (v: "private" | "public") => {
     if (v === "public" && !confirm("Make this architecture public? Anyone with the link can view it (read-only).")) return;
     await api(`/architectures/${id}`, { method: "PATCH", body: { visibility: v }, token });
@@ -167,12 +175,16 @@ function Inner({ id }: { id: string }) {
         {!readOnly && (
           <>
             <button className={btn} onClick={() => setVisibility(arch.visibility === "private" ? "public" : "private")}>{arch.visibility === "private" ? "Private" : "Public"}</button>
+            {arch.visibility === "public" && (
+              <button className={btn} onClick={() => { navigator.clipboard?.writeText(window.location.href); setCopied(true); setTimeout(() => setCopied(false), 1500); }}>{copied ? "Link copied" : "Copy link"}</button>)}
+            <button className={btn} onClick={() => setShowPublish(true)}>Publish as blueprint</button>
             <input aria-label="Version note" placeholder="Version note (optional)" value={note} onChange={(e) => setNote(e.target.value)} className="w-44 rounded-md border border-border bg-surface2 px-2 py-1 text-sm" />
             <button onClick={save} disabled={saving === "saving"} className="rounded-md bg-accent px-3 py-1 text-sm font-medium text-bg disabled:opacity-60">
               {saving === "saving" ? "Saving…" : ed.dirty ? "Save version •" : "Save version"}</button>
           </>
         )}
-        {readOnly && <span className="text-sm text-muted">Read-only (public)</span>}
+        {readOnly && <span className="text-sm text-muted">Read-only (public design by another user)</span>}
+        {readOnly && token && <button className={btn} onClick={forkPublic}>Fork to my workspace</button>}
         {saving === "saved" && !ed.dirty && <span role="status" className="text-xs text-good">Saved</span>}
         {err && <span role="alert" className="text-xs text-bad">{err}</span>}
       </div>
@@ -193,6 +205,7 @@ function Inner({ id }: { id: string }) {
           {showHistory && <History id={id} token={token!} current={arch.latest_version} onClose={() => setShowHistory(false)}
             onRestored={() => { setShowHistory(false); setReload((r) => r + 1); }} />}
         </div>
+        {showPublish && <PublishDialog architectureId={id} defaultTitle={title} token={token!} dirty={ed.dirty} onClose={() => setShowPublish(false)} />}
         <div className="flex h-full w-80 shrink-0 flex-col border-l border-border bg-surface">
           <div className="flex border-b border-border text-sm" role="tablist">
             {(["inspector", "assistant"] as const).filter((t) => t === "inspector" || !readOnly).map((t) => (

@@ -183,3 +183,14 @@ def test_add_technology_from_profile_creates_version_and_feeds_usage(env):
     with Session(eng) as s:
         u = tech_usage(s, "u1")
     assert set(u) == {"nextjs", "fastapi", "postgres", "qdrant"} and u["qdrant"][0]["title"] == "Stack"
+
+
+def test_saved_graphs_get_component_types_derived_from_technology(env):
+    c, _, _ = env
+    a = c.post("/api/v1/architectures", json={"title": "n", "graph": GOOD}).json()["id"]
+    types = {n["id"]: n["data"]["component_type"] for n in c.get(f"/api/v1/architectures/{a}").json()["graph"]["nodes"]}
+    assert types == {"web": "frontend", "api": "backend", "db": "database"}  # client sent none
+    # an explicit client override is respected (e.g. object storage built on infrastructure software)
+    g = {"nodes": [node("s", "postgres", component_type="storage")], "edges": []}
+    a2 = c.post("/api/v1/architectures", json={"title": "o", "graph": g}).json()["id"]
+    assert c.get(f"/api/v1/architectures/{a2}").json()["graph"]["nodes"][0]["data"]["component_type"] == "storage"

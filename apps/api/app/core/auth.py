@@ -41,3 +41,9 @@ def current_user(authorization: str | None = Header(None), db: Session = Depends
         user = User(id=c.sub, email=c.email)
         db.add(user); db.commit()
     return user
+
+
+def admin_user(user: User = Depends(current_user)) -> User:
+    if not user.is_admin:
+        raise HTTPException(403, "moderator access required")
+    return user

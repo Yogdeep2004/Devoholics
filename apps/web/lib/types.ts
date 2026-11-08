@@ -23,7 +23,7 @@ export type FeedCardT = {
   score: number; reasons: string[];
 };
 export type Category = { slug: string; name: string; technology_count: number };
-export type Me = { id: string; email: string; username: string | null; interests: string[] };
+export type Me = { id: string; email: string; username: string | null; is_admin?: boolean; interests: string[] };
 export type Library = { bookmarks: TechSummary[]; follows: TechSummary[] };
 
 export type NodeData = {
@@ -60,3 +60,19 @@ export type Finding = { severity: "high" | "medium" | "low" | "info"; category: 
 export type ReviewOut = { version: number; findings: Finding[]; ai_error: string | null; note: string };
 export type ExplainOut = { ai_generated: true; answer: string; verified_facts: Record<string, Record<string, unknown>> };
 export type SuggestionRow = { id: string; kind: string; prompt: string; status: string; summary: string | null; created_at: string };
+
+export type BlueprintCard = {
+  slug: string; title: string; description: string; difficulty: "beginner" | "intermediate" | "advanced";
+  status: "pending" | "published" | "rejected" | "removed"; curated: boolean; version: number; fork_count: number;
+  components: number; technologies: string[]; author: { id: string; username: string }; published_at: string | null;
+  moderation_note?: string | null;
+};
+export type BlueprintDetail = BlueprintCard & {
+  graph: Graph; changelog: string | null; data_flows: string[]; integration_notes: { from: string; to: string; explanation: string }[];
+  infrastructure_notes: string | null; known_limitations: string[]; validation: Report; is_author: boolean; notice: string | null;
+  versions: { version: number; changelog: string | null; created_at: string }[];
+  component_facts: BlueprintFact[]; // verified data from DEVOHOLICS, not author claims
+};
+export type BlueprintFact = { node_id: string; label: string; layer: string | null; slug: string; name: string; component_type: string;
+  license: string | null; stars: number | null; days_since_last_push: number | null; latest_release: string | null; source: string | null };
+export type ReportRow = { id: string; reason: string; details: string | null; created_at: string; blueprint: { slug: string; title: string; status: string } };
