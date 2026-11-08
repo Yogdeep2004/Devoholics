@@ -1,0 +1,4 @@
+{
+  "regions": ["sin1"],
+  "functions": { "app/main.py": { "maxDuration": 60 } }
+}
