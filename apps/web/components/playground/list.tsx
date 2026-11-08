@@ -1,5 +1,6 @@
 "use client";
 import { Plus, X } from "@phosphor-icons/react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -9,6 +10,9 @@ import { useApi } from "@/lib/use-api";
 import type { ArchMeta, BlueprintCard } from "@/lib/types";
 import { timeAgo } from "@/lib/utils";
 import { Badge, Card, ErrorNote, Skeleton } from "../ui";
+
+// Loaded only for signed-out visitors, so signed-in users never download the demo.
+const PlaygroundPreview = dynamic(() => import("./preview").then((m) => m.PlaygroundPreview), { ssr: false, loading: () => <Skeleton n={1} h={420} /> });
 
 type Col = { id: string; name: string };
 
@@ -23,12 +27,7 @@ export function PlaygroundHome() {
   const [err, setErr] = useState("");
 
   if (!ready) return <Skeleton />;
-  if (!token) return (
-    <div className="py-16 text-center">
-      <p className="text-muted">Sign in to design and save architectures.</p>
-      <Link href="/login" className="btn btn-primary mt-4 h-10 px-5 text-sm">Sign in</Link>
-    </div>
-  );
+  if (!token) return <PlaygroundPreview />;
   const create = async (collection_id?: string) => {
     try { const a = await api<ArchMeta>("/architectures", { method: "POST", token, body: { title: "Untitled architecture", collection_id: collection_id ?? null } }); router.push(`/playground/${a.id}`); }
     catch (e) { setErr((e as Error).message); }
