@@ -44,6 +44,14 @@ Review = deterministic rules (source "rule") + optional AI findings (source "ai"
 Compare is computed from graphs + DB; AI narrative is optional. AI answers are shown separately from "Verified data".
 Per-user rate limit: `AI_REQUESTS_PER_MINUTE` (default 10). Not yet verified against a live model (no key was available).
 
+## Phase 5 – Intelligence <-> architecture integration (done)
+Profile "Open in Playground" (adds the technology as a new version of an existing/new design via
+`POST /architectures/{id}/add-technology`); inspector has profile link + alternatives + replace; the feed knows which
+technologies are in your saved designs (`used_in`, ranking boost "used in one of your saved architectures", "My stack"
+filter); feed cards link to `/playground/{id}?investigate={nodeId}`, which opens the design with the node selected and the
+Assistant tab ready. Nothing is ever auto-replaced; the AI only runs when you click. Release events and verified
+maintenance warnings reach you through the same feed.
+
 ## Run
     cd apps/api && python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"
     cp .env.example .env   # repo root; fill in values (never commit)

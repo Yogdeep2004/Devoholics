@@ -53,3 +53,23 @@ def test_ranking_is_explainable():
     assert a - b == 50 and "you follow this technology" in why
     old, _ = score("new_release", now - timedelta(days=30), False, False, now)
     assert old < b
+
+
+def test_feed_boosts_and_scopes_to_technologies_in_my_architectures():
+    from app.api.routes import optional_user_id
+    c, eng = setup()
+    with Session(eng) as s:
+        s.add(m.User(id="u1", email="u@x.dev")); s.flush()
+        arch = m.Architecture(id="a1", user_id="u1", title="My RAG")
+        arch.versions.append(m.ArchitectureVersion(version_number=1, graph_json={"nodes": [
+            {"id": "n1", "kind": "component", "technology": "b", "position": {"x": 0, "y": 0}, "data": {"label": "B"}}], "edges": []}))
+        s.add(arch); s.commit()
+    app.dependency_overrides[optional_user_id] = lambda: "u1"
+    cards = c.get("/api/v1/feed?window=30d").json()
+    top = cards[0]
+    assert top["technology"]["slug"] == "b" and top["used_in"] == [{"architecture_id": "a1", "title": "My RAG", "node_id": "n1"}]
+    assert "used in one of your saved architectures" in top["reasons"]
+    mine = c.get("/api/v1/feed?scope=mine").json()
+    assert [x["technology"]["slug"] for x in mine] == ["b"]
+    app.dependency_overrides[optional_user_id] = lambda: None
+    assert c.get("/api/v1/feed?scope=mine").json() == []  # anonymous has no stack

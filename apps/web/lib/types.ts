@@ -19,6 +19,7 @@ export type FeedCardT = {
   technology: { slug: string; name: string; category: string };
   source: string | null; source_url: string | null; detected_at: string;
   metrics: { stars: number | null; forks: number | null; stars_gained_7d: number | null };
+  used_in: { architecture_id: string; title: string; node_id: string }[];
   score: number; reasons: string[];
 };
 export type Category = { slug: string; name: string; technology_count: number };

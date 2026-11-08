@@ -2,6 +2,7 @@
 import "@xyflow/react/dist/style.css";
 import { Background, Controls, MiniMap, ReactFlow, ReactFlowProvider, useReactFlow, type OnSelectionChangeParams } from "@xyflow/react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -56,6 +57,7 @@ function Inner({ id }: { id: string }) {
   const [tab, setTab] = useState<"inspector" | "assistant">("inspector");
 
   const [reload, setReload] = useState(0);
+  const investigate = useSearchParams().get("investigate");
   useEffect(() => {
     if (!ready) return;
     let live = true;
@@ -64,8 +66,14 @@ function Inner({ id }: { id: string }) {
       setArch(a); setTitle(a.title); setErr("");
       const st = useEditor.getState();
       st.load(a.graph); st.setReport(a.validation);
+      if (investigate && a.graph.nodes.some((n) => n.id === investigate)) {  // deep link from a feed card
+        st.setSelected({ kind: "node", id: investigate });
+        useEditor.setState((s) => ({ nodes: s.nodes.map((n) => ({ ...n, selected: n.id === investigate })) }));
+        setTab("assistant");
+      }
     }, (e) => live && setErr(e.message));
     return () => { live = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, id, token, reload]);
 
   // live validation (debounced) against the backend rules

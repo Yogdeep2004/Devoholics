@@ -9,6 +9,7 @@ from app.db import get_db
 from app.intelligence import dimensions as dim
 from app.intelligence.growth import growth
 from app.intelligence.ranking import score
+from app.services.usage import tech_usage
 from app.models import (
     Category,
     FeedEvent,
@@ -118,6 +119,7 @@ def _stars_gained(db: Session, repo_ids: list[int], days: int) -> dict[int, int 
 @router.get("/feed")
 def feed(event_type: str | None = None, window: str = Query("30d", pattern="^(24h|7d|30d|90d)$"),
          sort: str = Query("relevance", pattern="^(relevance|recency|growth)$"),
+         scope: str = Query("all", pattern="^(all|mine)$"),
          limit: int = Query(50, ge=1, le=200), user_id: str | None = Depends(optional_user_id),
          db: Session = Depends(get_db)):
     since = datetime.now(timezone.utc) - timedelta(days=WINDOWS[window])
@@ -125,22 +127,27 @@ def feed(event_type: str | None = None, window: str = Query("30d", pattern="^(24
     if event_type:
         stmt = stmt.where(FeedEvent.event_type.in_(TYPE_GROUPS.get(event_type, [event_type])))
     rows = db.execute(stmt.order_by(FeedEvent.detected_at.desc()).limit(1000)).all()
-    followed, interests = set(), set()
+    followed, interests, usage = set(), set(), {}
     if user_id:
+        usage = tech_usage(db, user_id)
         followed = set(db.scalars(select(UserFollow.technology_id).where(UserFollow.user_id == user_id)))
         interests = set(db.scalars(select(UserInterest.category_id).where(UserInterest.user_id == user_id)))
+    if scope == "mine":  # "my stack": technologies I follow or use in a saved architecture
+        rows = [(e, t) for e, t in rows if t.id in followed or t.slug in usage]
     repo_ids = [t.repositories[0].id for _, t in rows if t.repositories]
     gained = _stars_gained(db, list(set(repo_ids)), 7) if repo_ids else {}
     cards = []
     for e, t in rows:
         repo = t.repositories[0] if t.repositories else None
-        sc, why = score(e.event_type, e.detected_at, t.id in followed, t.category_id in interests)
+        sc, why = score(e.event_type, e.detected_at, t.id in followed, t.category_id in interests,
+                        in_architecture=t.slug in usage)
         cards.append({"id": e.id, "type": e.event_type, "title": e.event_title, "description": t.description,
                       "technology": {"slug": t.slug, "name": t.name, "category": t.category.slug},
                       "source": repo.source_platform if repo else None, "source_url": e.source_url,
                       "detected_at": e.detected_at, "metadata": e.event_metadata,
                       "metrics": {"stars": repo.stars if repo else None, "forks": repo.forks if repo else None,
                                   "stars_gained_7d": gained.get(repo.id) if repo else None},
+                      "used_in": usage.get(t.slug, []),
                       "score": round(sc, 2), "reasons": why})
     key = {"relevance": lambda c: -c["score"], "recency": lambda c: str(c["detected_at"]) ,
            "growth": lambda c: -(c["metrics"]["stars_gained_7d"] or -1)}[sort]

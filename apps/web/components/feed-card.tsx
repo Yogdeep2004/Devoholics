@@ -25,6 +25,16 @@ export function FeedCard({ c }: { c: FeedCardT }) {
         <span>⑂ {compact(c.metrics.forks)}</span>
         <span>7d: {c.metrics.stars_gained_7d == null ? "no history yet" : `+${compact(c.metrics.stars_gained_7d)}`}</span>
       </div>
+      {c.used_in.length > 0 && (
+        <div className="rounded-md border border-accent/40 bg-accent/10 p-2 text-xs">
+          <span className="text-accent">In your stack:</span>{" "}
+          {c.used_in.map((u, i) => (
+            <span key={u.architecture_id + u.node_id}>{i > 0 && ", "}
+              <Link href={`/playground/${u.architecture_id}?investigate=${encodeURIComponent(u.node_id)}`} className="underline hover:text-fg">{u.title}</Link></span>
+          ))}
+          <span className="block text-muted">{warn ? "Open the design to investigate alternatives with the assistant. Nothing changes automatically." : "Open the design to review whether this affects it."}</span>
+        </div>
+      )}
       <details className="text-xs text-muted">
         <summary className="cursor-pointer hover:text-fg">Why am I seeing this?</summary>
         <ul className="mt-1 list-disc pl-5">{c.reasons.map((r) => <li key={r}>{r}</li>)}</ul>

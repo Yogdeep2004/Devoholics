@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useAuth } from "@/lib/auth";
 import { useApi } from "@/lib/use-api";
 import type { FeedCardT } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -18,7 +19,9 @@ export function Feed() {
   const [type, setType] = useState("");
   const [window, setWindow] = useState("30d");
   const [sort, setSort] = useState("relevance");
-  const qs = new URLSearchParams({ window, sort, limit: "60", ...(type && { event_type: type }) });
+  const [mine, setMine] = useState(false);
+  const { token } = useAuth();
+  const qs = new URLSearchParams({ window, sort, limit: "60", ...(type && { event_type: type }), ...(mine && token && { scope: "mine" }) });
   const { data, error, loading } = useApi<FeedCardT[]>(`/feed?${qs}`);
   return (
     <div className="space-y-4">
@@ -30,10 +33,11 @@ export function Feed() {
           {WINDOWS.map((w) => <Pill key={w} on={window === w} onClick={() => setWindow(w)}>{w}</Pill>)}
           <span className="mx-1 text-border">|</span>
           {SORTS.map(([v, l]) => <Pill key={v} on={sort === v} onClick={() => setSort(v)}>{l}</Pill>)}
+          {token && <><span className="mx-1 text-border">|</span><Pill on={mine} onClick={() => setMine((m) => !m)}>My stack</Pill></>}
         </div>
       </div>
       {error ? <ErrorNote msg={error} /> : loading ? <Skeleton /> : data!.length === 0 ? (
-        <p className="py-12 text-center text-muted">No updates in this window. Try a longer time range.</p>
+        <p className="py-12 text-center text-muted">{mine ? "No updates for technologies you follow or use in your architectures in this window." : "No updates in this window. Try a longer time range."}</p>
       ) : (
         <div className="grid gap-3 md:grid-cols-2">{data!.map((c) => <FeedCard key={c.id} c={c} />)}</div>
       )}

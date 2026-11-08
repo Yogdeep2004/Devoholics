@@ -3,6 +3,7 @@ import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YA
 import { useApi } from "@/lib/use-api";
 import type { Signal, TechProfile } from "@/lib/types";
 import { compact, timeAgo } from "@/lib/utils";
+import { AddToArchitecture } from "./add-to-architecture";
 import { TechActions } from "./actions";
 import { Badge, Card, ErrorNote, FreshnessBadge, Skeleton } from "./ui";
 
@@ -64,9 +65,7 @@ export function Profile({ slug }: { slug: string }) {
         </div>
         <div className="space-y-2">
           <TechActions slug={t.slug} />
-          <button disabled title="Architecture Playground arrives in Phase 3" className="w-full cursor-not-allowed rounded-md border border-border px-3 py-1.5 text-sm text-muted/60">
-            Open in Playground (soon)
-          </button>
+          <AddToArchitecture slug={t.slug} />
         </div>
       </div>
 

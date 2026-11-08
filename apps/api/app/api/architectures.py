@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.api.routes import optional_user_id
 from app.architecture.rules import CONNECTION_TYPES, component_type_for
-from app.architecture.schema import Graph
+from app.architecture.schema import Graph, Node, NodeData, Position
 from app.architecture.validation import validate_graph
 from app.core.auth import current_user
 from app.db import get_db
@@ -212,6 +212,33 @@ def duplicate(arch_id: str, user: User = Depends(current_user), db: Session = De
     _add_version(db, c, Graph.model_validate(_latest(a).graph_json), f"Duplicated from '{a.title}'")
     db.commit()
     return _meta(c)
+
+
+class AddTechIn(BaseModel):
+    technology: str = Field(min_length=1, max_length=200)
+
+
+@router.post("/architectures/{arch_id}/add-technology", status_code=201)
+def add_technology(arch_id: str, body: AddTechIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """Add a technology from its profile to a design as a new version (never edits history)."""
+    a = _get_owned(db, user, arch_id)
+    t = db.scalar(select(Technology).where(Technology.slug == body.technology))
+    if not t:
+        raise HTTPException(404, "technology not found")
+    g = Graph.model_validate(_latest(a).graph_json)
+    taken = {n.id for n in g.nodes}
+    k = 1
+    while f"{t.slug[:40]}_{k}" in taken:
+        k += 1
+    nid = f"{t.slug[:40]}_{k}"
+    comps = [n for n in g.nodes if n.kind == "component"]
+    pos = Position(x=max([n.position.x for n in comps], default=-260) + 260, y=0 if not comps else comps[-1].position.y)
+    g.nodes.append(Node(id=nid, kind="component", technology=t.slug, position=pos,
+                        data=NodeData(label=t.name, component_type=component_type_for(t.category.slug))))
+    _checked(db, g)
+    v = _add_version(db, a, g, f"Added {t.name} from its technology profile")
+    db.commit()
+    return {"version_number": v.version_number, "node_id": nid, "architecture_id": a.id}
 
 
 # ---- collections ----

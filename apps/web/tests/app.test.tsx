@@ -14,7 +14,7 @@ const card: FeedCardT = {
   id: 1, type: "new_release", title: "FastAPI 1.0 released", description: "Web framework",
   technology: { slug: "fastapi", name: "FastAPI", category: "backend" }, source: "github",
   source_url: "https://example.com/r", detected_at: new Date().toISOString(),
-  metrics: { stars: 90000, forks: 8000, stars_gained_7d: null }, score: 40, reasons: ["recency +30.0", "new release +10"],
+  metrics: { stars: 90000, forks: 8000, stars_gained_7d: null }, used_in: [], score: 40, reasons: ["recency +30.0", "new release +10"],
 };
 
 const urls: string[] = [];
@@ -37,6 +37,14 @@ describe("FeedCard", () => {
     expect(screen.getByText("7d: no history yet")).toBeInTheDocument();
     expect(screen.getByText("recency +30.0")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Source/ })).toHaveAttribute("href", "https://example.com/r");
+  });
+});
+
+describe("FeedCard stack awareness", () => {
+  it("links stack usage to the design with an investigate deep link and promises no automatic change", () => {
+    render(<FeedCard c={{ ...card, type: "maintenance_warning", used_in: [{ architecture_id: "a1", title: "My RAG", node_id: "n 1" }] }} />);
+    expect(screen.getByRole("link", { name: "My RAG" })).toHaveAttribute("href", "/playground/a1?investigate=n%201");
+    expect(screen.getByText(/Nothing changes automatically/)).toBeInTheDocument();
   });
 });
 

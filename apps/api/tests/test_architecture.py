@@ -165,3 +165,21 @@ def test_delete_collection_keeps_architectures(env):
     assert c.delete(f"/api/v1/collections/{col['id']}").status_code == 204
     assert c.get("/api/v1/collections").json() == []
     assert c.get(f"/api/v1/architectures/{a['id']}").status_code == 200
+
+
+def test_add_technology_from_profile_creates_version_and_feeds_usage(env):
+    c, who, eng = env
+    a = c.post("/api/v1/architectures", json={"title": "Stack", "graph": GOOD}).json()
+    r = c.post(f"/api/v1/architectures/{a['id']}/add-technology", json={"technology": "qdrant"})
+    assert r.status_code == 201 and r.json()["version_number"] == 2
+    g = c.get(f"/api/v1/architectures/{a['id']}").json()["graph"]
+    n = next(n for n in g["nodes"] if n["id"] == r.json()["node_id"])
+    assert n["technology"] == "qdrant" and n["data"]["component_type"] == "vector_database"
+    assert c.get(f"/api/v1/architectures/{a['id']}/versions/1").json()["graph"]["nodes"].__len__() == 3  # history intact
+    assert c.post(f"/api/v1/architectures/{a['id']}/add-technology", json={"technology": "nope"}).status_code == 404
+    who["id"] = "u2"
+    assert c.post(f"/api/v1/architectures/{a['id']}/add-technology", json={"technology": "qdrant"}).status_code == 404
+    from app.services.usage import tech_usage
+    with Session(eng) as s:
+        u = tech_usage(s, "u1")
+    assert set(u) == {"nextjs", "fastapi", "postgres", "qdrant"} and u["qdrant"][0]["title"] == "Stack"
