@@ -5,9 +5,10 @@ import { ReactFlow, ReactFlowProvider, type Edge } from "@xyflow/react";
 import { useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { CAPTIONS, FINAL_STAGE, nextStage, PROMPT_TEXT, STAGES, type PreviewEdgeId, type PreviewNodeId, type Stage } from "@/lib/playground/preview-script";
+import { CAPTIONS, FINAL_STAGE, PROMPT_TEXT, STAGES, type PreviewEdgeId, type PreviewNodeId, type Stage } from "@/lib/playground/preview-script";
 import type { RFNode } from "@/lib/playground/convert";
-import { cn } from "@/lib/utils";
+import { useStageLoop } from "@/lib/use-stage-loop";
+import { StepList } from "../preview/step-list";
 import { nodeTypes } from "./nodes";
 
 const NODES: Record<PreviewNodeId, { label: string; tech: string; type: string; x: number; y: number }> = {
@@ -62,15 +63,8 @@ function Canvas({ stage, typed }: { stage: Stage; typed: string }) {
 /** Looping, non-interactive demo of the real editor for visitors who are not signed in. */
 export function PlaygroundPreview() {
   const reduce = useReducedMotion();
-  const [i, setI] = useState(0);
   const [typed, setTyped] = useState("");
-  const stage = reduce ? FINAL_STAGE : STAGES[i];
-
-  useEffect(() => {
-    if (reduce) return;
-    const t = setTimeout(() => setI(nextStage), STAGES[i].ms);
-    return () => clearTimeout(t);
-  }, [i, reduce]);
+  const { stage } = useStageLoop(STAGES, FINAL_STAGE, reduce);
 
   useEffect(() => {
     if (reduce || !stage.prompt || stage.proposal) return;
@@ -85,18 +79,7 @@ export function PlaygroundPreview() {
       <div>
         <h1 className="display text-[2.2rem] sm:text-5xl lg:text-[2.7rem]">Design your stack on a canvas of real tools.</h1>
         <p className="mt-4 max-w-md text-[15px] leading-relaxed text-muted">Drag in real technologies, connect them with typed links, and let an AI propose changes you approve.</p>
-        <ol className="mt-7 space-y-1">
-          {CAPTIONS.map((c, k) => (
-            <li key={c.title} aria-current={active === k ? "step" : undefined}
-              className={cn("relative rounded-lg py-2 pl-4 pr-3 transition-colors duration-300", active === k ? "bg-surface2" : "")}>
-              <span aria-hidden className={cn("absolute left-0 top-2 h-[calc(100%-1rem)] w-0.5 rounded bg-accent transition-opacity duration-300", active === k ? "opacity-100" : "opacity-0")} />
-              <div className={cn("text-sm font-medium transition-colors duration-300", active === k ? "text-fg" : "text-muted")}>{c.title}</div>
-              <div className={cn("grid text-[13px] leading-snug text-muted transition-[grid-template-rows,opacity] duration-300", active === k ? "mt-0.5 grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0")}>
-                <div className="overflow-hidden">{c.body}</div>
-              </div>
-            </li>
-          ))}
-        </ol>
+        <StepList captions={CAPTIONS} active={active} />
         <div className="mt-7 flex flex-wrap gap-3">
           <Link href="/login" className="btn btn-primary h-10 px-5 text-sm">Sign in to start <ArrowRight size={15} weight="bold" /></Link>
           <Link href="/blueprints" className="btn h-10 px-5 text-sm">Browse blueprints</Link>

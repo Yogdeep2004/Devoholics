@@ -1,6 +1,10 @@
-import { Heart } from "@phosphor-icons/react/dist/ssr";
+"use client";
+import { Heart } from "@phosphor-icons/react";
+import { usePathname } from "next/navigation";
 
+/** The author credit appears on the home page only. */
 export function Footer() {
+  if (usePathname() !== "/") return null;
   return (
     <footer className="border-t hairline">
       <div className="mx-auto flex max-w-7xl items-center justify-center px-4 py-8 text-[13px] text-muted sm:px-6">

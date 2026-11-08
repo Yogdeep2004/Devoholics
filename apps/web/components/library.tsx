@@ -1,11 +1,14 @@
 "use client";
-import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useState } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useApi } from "@/lib/use-api";
 import type { Category, Library as Lib, Me } from "@/lib/types";
 import { TechCard } from "./explore";
+
+// Loaded only for signed-out visitors.
+const LibraryPreview = dynamic(() => import("./library-preview").then((m) => m.LibraryPreview), { ssr: false, loading: () => <Skeleton n={1} h={440} /> });
 import { ErrorNote, Skeleton } from "./ui";
 
 function Interests({ me, onSaved }: { me: Me; onSaved: () => void }) {
@@ -45,12 +48,7 @@ export function Library() {
   const me = useApi<Me>(token ? "/me" : null, true);
   const lib = useApi<Lib>(token ? `/me/library?r=${rev}` : null, true);
   if (!ready) return <Skeleton />;
-  if (!token) return (
-    <div className="py-16 text-center">
-      <p className="text-muted">Sign in to keep a personal library of saved and followed technologies.</p>
-      <Link href="/login" className="btn btn-primary mt-4 h-10 px-5 text-sm">Sign in</Link>
-    </div>
-  );
+  if (!token) return <LibraryPreview />;
   if (me.error || lib.error) return <ErrorNote msg={me.error ?? lib.error!} />;
   if (!me.data || !lib.data) return <Skeleton />;
   return (
