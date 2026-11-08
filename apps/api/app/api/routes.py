@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from sqlalchemy import func, or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.core.auth import decode_token
 from app.db import get_db
@@ -47,7 +47,7 @@ def technologies(q: str | None = None, category: str | None = None,
                  sort: str = Query("stars", pattern="^(stars|name)$"),
                  limit: int = Query(50, ge=1, le=200), offset: int = Query(0, ge=0),
                  db: Session = Depends(get_db)):
-    stmt = select(Technology).join(Category)
+    stmt = select(Technology).join(Category).options(joinedload(Technology.category), selectinload(Technology.repositories))
     if category:
         stmt = stmt.where(Category.slug == category)
     if q:
@@ -75,7 +75,8 @@ def technology(slug: str, db: Session = Depends(get_db)):
         snap = db.scalar(select(MetricSnapshot).where(MetricSnapshot.repository_id == repo.id)
                          .order_by(MetricSnapshot.recorded_at.desc()))
     rels = db.scalars(select(TechnologyRelationship).where(TechnologyRelationship.source_technology_id == t.id)).all()
-    return {**_tech_summary(t), "documentation_url": t.documentation_url,
+    return {**_tech_summary(t), "documentation_url": t.documentation_url, "use_cases": t.use_cases,
+            "topics": (repo.topics or [])[:8] if repo else [], "created_at": repo.repo_created_at if repo else None,
             "packages": [{"registry": p.registry_name, "name": p.name, "version": p.latest_version, "published_at": p.latest_published_at,
                           "weekly_downloads": p.weekly_downloads, "dependencies": p.dependency_count, "url": p.package_url}
                          for p in db.scalars(select(Package).where(Package.technology_id == t.id))],
@@ -101,7 +102,7 @@ def optional_user_id(authorization: str | None = Header(None)) -> str | None:
 
 
 WINDOWS = {"24h": 1, "7d": 7, "30d": 30, "90d": 90}
-TYPE_GROUPS = {"trending": ["trending"], "releases": ["new_release"], "warnings": ["maintenance_warning"]}
+TYPE_GROUPS = {"trending": ["trending"], "new_tools": ["new_tool"], "releases": ["new_release"], "warnings": ["maintenance_warning"]}
 
 
 def _stars_gained(db: Session, repo_ids: list[int], days: int) -> dict[int, int | None]:
@@ -123,7 +124,7 @@ def feed(event_type: str | None = None, window: str = Query("30d", pattern="^(24
          limit: int = Query(50, ge=1, le=200), user_id: str | None = Depends(optional_user_id),
          db: Session = Depends(get_db)):
     since = datetime.now(timezone.utc) - timedelta(days=WINDOWS[window])
-    stmt = select(FeedEvent, Technology).join(Technology).where(FeedEvent.detected_at >= since)
+    stmt = select(FeedEvent, Technology).join(Technology).where(FeedEvent.detected_at >= since).options(joinedload(Technology.category), selectinload(Technology.repositories))
     if event_type:
         stmt = stmt.where(FeedEvent.event_type.in_(TYPE_GROUPS.get(event_type, [event_type])))
     rows = db.execute(stmt.order_by(FeedEvent.detected_at.desc()).limit(1000)).all()
@@ -154,6 +155,29 @@ def feed(event_type: str | None = None, window: str = Query("30d", pattern="^(24
            "growth": lambda c: -(c["metrics"]["stars_gained_7d"] or -1)}[sort]
     cards.sort(key=key, reverse=(sort == "recency"))
     return cards[:limit]
+
+
+@router.get("/trending/emerging")
+def emerging(days: int = Query(60, ge=7, le=180), limit: int = Query(12, ge=1, le=50), db: Session = Depends(get_db)):
+    """Recently created repositories ranked by average stars/day since creation (official GitHub numbers, no guessing)."""
+    now = datetime.now(timezone.utc)
+    rows = db.execute(select(Technology, Repository).join(Repository).where(
+        Repository.repo_created_at >= now - timedelta(days=days), Repository.stars >= 30).options(joinedload(Technology.category))).unique().all()
+    items = []
+    for t, r in rows:
+        created = r.repo_created_at if r.repo_created_at.tzinfo else r.repo_created_at.replace(tzinfo=timezone.utc)
+        age = max(1, (now - created).days)
+        items.append({"slug": t.slug, "name": t.name, "description": t.description, "category": t.category.slug,
+                      "stars": r.stars, "forks": r.forks, "age_days": age, "stars_per_day": round(r.stars / age, 1),
+                      "topics": (r.topics or [])[:6], "use_cases": t.use_cases, "repository_url": r.repository_url,
+                      "created_at": created.isoformat()})
+    items.sort(key=lambda i: -i["stars_per_day"])
+    gained = _stars_gained(db, [r.id for _, r in rows], 7) if rows else {}
+    by_url = {r.repository_url: r.id for _, r in rows}
+    for i in items:
+        i["stars_gained_7d"] = gained.get(by_url[i["repository_url"]])
+    return {"window_days": days, "items": items[:limit],
+            "note": "Stars per day is an average since the repository was created; 7-day gain appears once we have snapshot history."}
 
 
 @router.get("/trending")

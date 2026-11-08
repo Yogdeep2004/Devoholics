@@ -7,6 +7,7 @@ import { compact, plain, timeAgo } from "@/lib/utils";
 import { TechActions } from "./actions";
 import { AddToArchitecture } from "./add-to-architecture";
 import { TechLogo } from "./logo";
+import { UseForPanel } from "./trending";
 import { ErrorNote, FreshnessBadge, Skeleton, Stat } from "./ui";
 
 const LABEL: Record<string, string> = {
@@ -74,6 +75,8 @@ export function Profile({ slug }: { slug: string }) {
         </div>
         <div className="w-full space-y-2 sm:w-56"><TechActions slug={t.slug} /><AddToArchitecture slug={t.slug} /></div>
       </header>
+
+      {t.use_cases && t.use_cases.headline && <UseForPanel uc={t.use_cases} topics={t.topics} size="md" />}
 
       <div className="grid grid-cols-2 gap-y-6 border-y hairline py-6 sm:grid-cols-4 sm:divide-x sm:divide-border">
         <div className="sm:pr-6"><Stat label={unit} value={compact(t.stars)} /></div>

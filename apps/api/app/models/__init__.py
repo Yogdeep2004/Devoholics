@@ -38,6 +38,7 @@ class Technology(Base):
     official_url: Mapped[str | None] = mapped_column(String(500))
     documentation_url: Mapped[str | None] = mapped_column(String(500))
     license: Mapped[str | None] = mapped_column(String(100))
+    use_cases: Mapped[dict | None] = mapped_column(JsonType)  # AI-generated 'what is it for', labelled as such
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     category: Mapped[Category] = relationship()
     repositories: Mapped[list["Repository"]] = relationship(back_populates="technology")
@@ -57,6 +58,8 @@ class Repository(Base):
     last_commit_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     last_synced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     platform_metadata: Mapped[dict | None] = mapped_column(JsonType)  # e.g. HF downloads, MCP registry info
+    repo_created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))  # when the repository was created (GitHub)
+    topics: Mapped[list | None] = mapped_column(JsonType)
     technology: Mapped[Technology] = relationship(back_populates="repositories")
 
 

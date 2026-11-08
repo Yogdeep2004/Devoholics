@@ -1,4 +1,4 @@
-import { ArrowUpRight, GithubLogo, TrendUp, Warning, Tag as TagIcon, Stack } from "@phosphor-icons/react/dist/ssr";
+import { ArrowUpRight, GithubLogo, Sparkle, TrendUp, Warning, Tag as TagIcon, Stack } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import type { FeedCardT } from "@/lib/types";
 import { compact, plain, timeAgo } from "@/lib/utils";
@@ -7,6 +7,7 @@ import { TechLogo } from "./logo";
 const TYPE: Record<string, { label: string; Icon: typeof TagIcon; tone: string }> = {
   new_release: { label: "Release", Icon: TagIcon, tone: "text-fg" },
   trending: { label: "Trending", Icon: TrendUp, tone: "text-accent" },
+  new_tool: { label: "New tool", Icon: Sparkle, tone: "text-accent" },
   maintenance_warning: { label: "Maintenance", Icon: Warning, tone: "text-warn" },
 };
 

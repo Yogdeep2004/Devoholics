@@ -36,6 +36,7 @@ class RepoData:
     contributors: int | None
     last_commit_at: datetime | None
     archived: bool
+    created_at: datetime | None = None
 
 
 @dataclass
@@ -89,8 +90,22 @@ class GitHubClient:
             license=None if spdx in (None, "NOASSERTION") else spdx,
             topics=d.get("topics", []), stars=d["stargazers_count"], forks=d["forks_count"],
             open_issues=d["open_issues_count"], contributors=self._contributors(full_name),
-            last_commit_at=_dt(d.get("pushed_at")), archived=d.get("archived", False),
+            last_commit_at=_dt(d.get("pushed_at")), archived=d.get("archived", False), created_at=_dt(d.get("created_at")),
         )
+
+    def search(self, query: str, per_page: int = 30) -> list[RepoData]:
+        """Official Search API. Contributors are left unknown (None) to save calls; the daily sync fills them in."""
+        r = self._get("/search/repositories", q=query, sort="stars", order="desc", per_page=per_page)
+        r.raise_for_status()
+        out = []
+        for d in r.json().get("items", []):
+            spdx = (d.get("license") or {}).get("spdx_id")
+            out.append(RepoData(
+                external_id=str(d["id"]), full_name=d["full_name"], url=d["html_url"], description=d.get("description"),
+                homepage=d.get("homepage") or None, license=None if spdx in (None, "NOASSERTION") else spdx,
+                topics=d.get("topics", []), stars=d["stargazers_count"], forks=d["forks_count"], open_issues=d["open_issues_count"],
+                contributors=None, last_commit_at=_dt(d.get("pushed_at")), archived=d.get("archived", False), created_at=_dt(d.get("created_at"))))
+        return out
 
     def _contributors(self, full_name: str) -> int | None:
         r = self._get(f"/repos/{full_name}/contributors", per_page=1, anon="false")

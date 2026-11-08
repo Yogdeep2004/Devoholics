@@ -64,6 +64,19 @@ def events() -> None:
         log.info("events", releases=ev.backfill_recent_releases(db), warnings=ev.maintenance_warnings(db))
 
 
+def discover_new() -> None:
+    from app.services.discover import discover
+    with SessionLocal() as db:
+        log.info("discover", new=discover(db, GitHubClient(settings.github_token)))
+
+
+def usecases() -> None:
+    from app.ai.provider import get_llm
+    from app.services.usecases import generate_use_cases
+    with SessionLocal() as db:
+        log.info("usecases", written=generate_use_cases(db, get_llm()))
+
+
 def blueprints() -> None:
     """Upsert curated blueprints. Each graph must pass the real validator or seeding fails loudly."""
     from datetime import datetime, timezone
@@ -120,7 +133,7 @@ def make_admin() -> None:
 
 def refresh() -> None:
     """Everything a daily cron needs, in order. Each step is idempotent."""
-    for step in (sync, packages, models, events):
+    for step in (sync, discover_new, usecases, packages, models, events):
         try:
             step()
         except Exception as e:  # keep going; one failing source must not block the rest
@@ -139,4 +152,4 @@ def mcp() -> None:
 
 if __name__ == "__main__":
     configure_logging(settings.log_level)
-    {"seed": seed, "sync": sync, "packages": packages, "models": models, "mcp": mcp, "events": events, "refresh": refresh, "blueprints": blueprints, "make-admin": make_admin}[sys.argv[1]]()
+    {"seed": seed, "sync": sync, "packages": packages, "models": models, "mcp": mcp, "events": events, "refresh": refresh, "blueprints": blueprints, "discover": discover_new, "usecases": usecases, "make-admin": make_admin}[sys.argv[1]]()

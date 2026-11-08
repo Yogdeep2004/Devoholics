@@ -1,5 +1,5 @@
 "use client";
-import { Clock, Fire, Rows, Stack, Tag, TrendUp, Warning } from "@phosphor-icons/react";
+import { Clock, Fire, Rows, Sparkle, Stack, Tag, TrendUp, Warning } from "@phosphor-icons/react";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useApi } from "@/lib/use-api";
@@ -7,7 +7,7 @@ import type { FeedCardT } from "@/lib/types";
 import { FeedCard } from "./feed-card";
 import { Empty, ErrorNote } from "./ui";
 
-const TYPES = [["", "All updates", Rows], ["trending", "Trending", TrendUp], ["releases", "New releases", Tag], ["warnings", "Maintenance", Warning]] as const;
+const TYPES = [["", "All updates", Rows], ["new_tools", "New tools", Sparkle], ["releases", "New releases", Tag], ["warnings", "Maintenance", Warning]] as const;
 const WINDOWS = ["24h", "7d", "30d", "90d"];
 const SORTS = [["relevance", "Relevance", Fire], ["recency", "Recency", Clock], ["growth", "Growth", TrendUp]] as const;
 

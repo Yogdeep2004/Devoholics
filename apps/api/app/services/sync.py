@@ -22,6 +22,7 @@ def sync_repository(db: Session, gh: GitHubClient, repo: Repository, tech: Techn
     repo.external_id, repo.repository_url = d.external_id, d.url
     repo.stars, repo.forks, repo.open_issues = d.stars, d.forks, d.open_issues
     repo.last_commit_at, repo.last_synced_at = d.last_commit_at, now
+    repo.repo_created_at, repo.topics = d.created_at, d.topics
     tech.license = tech.license or d.license
     tech.description = tech.description or d.description
     tech.official_url = tech.official_url or d.homepage

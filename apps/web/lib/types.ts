@@ -4,9 +4,14 @@ export type TechSummary = {
   official_url: string | null; stars: number | null; forks: number | null;
   repository_url: string | null; freshness: Freshness;
 };
+export type UseCases = { headline: string; applications: string[]; ai_generated: boolean; generated_at?: string };
+export type EmergingTool = {
+  slug: string; name: string; description: string | null; category: string; stars: number; forks: number | null; age_days: number;
+  stars_per_day: number; topics: string[]; use_cases: UseCases | null; repository_url: string; created_at: string; stars_gained_7d: number | null;
+};
 export type Signal = { name: string; value: number | string | boolean | null; note: string | null };
 export type TechProfile = TechSummary & {
-  documentation_url: string | null; source_platform: string | null;
+  documentation_url: string | null; source_platform: string | null; use_cases?: UseCases | null; topics?: string[]; created_at?: string | null;
   platform_metadata: Record<string, unknown> | null;
   latest_release: { version: string; url: string | null; published_at: string | null } | null;
   packages: { registry: string; name: string; version: string | null; weekly_downloads: number | null;
