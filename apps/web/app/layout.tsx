@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Suspense } from "react";
+import { Footer } from "@/components/footer";
 import { Nav } from "@/components/nav";
 import { MotionProvider } from "@/components/motion";
 import { AuthProvider } from "@/lib/auth";
@@ -26,6 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <AuthProvider>
             <Suspense fallback={<div className="h-14 border-b hairline" />}><Nav /></Suspense>
             <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6">{children}</main>
+            <Footer />
           </AuthProvider>
         </MotionProvider>
       </body>
