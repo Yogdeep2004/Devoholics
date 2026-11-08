@@ -1,0 +1,38 @@
+import type { Edge, Node } from "@xyflow/react";
+import type { Graph, GraphEdge, GraphNode, NodeData } from "../types";
+
+export type RFNode = Node<NodeData>;
+export type RFEdge = Edge<{ connection_type: string; label: string; notes: string }>;
+
+export function toGraph(nodes: RFNode[], edges: RFEdge[]): Graph {
+  return {
+    nodes: nodes.map((n): GraphNode => ({
+      id: n.id, kind: (n.type as GraphNode["kind"]) ?? "component", technology: n.data.technology ?? null,
+      position: { x: Math.round(n.position.x), y: Math.round(n.position.y) }, parent: n.parentId ?? null,
+      width: n.width ?? (typeof n.style?.width === "number" ? n.style.width : null),
+      height: n.height ?? (typeof n.style?.height === "number" ? n.style.height : null),
+      data: { label: n.data.label, notes: n.data.notes ?? "", layer: n.data.layer ?? null,
+              component_type: n.data.component_type ?? null, config: n.data.config ?? {} },
+    })),
+    edges: edges.map((e): GraphEdge => ({
+      id: e.id, source: e.source, target: e.target, connection_type: e.data?.connection_type ?? "custom",
+      label: e.data?.label ?? "", notes: e.data?.notes ?? "",
+    })),
+  };
+}
+
+export function fromGraph(g: Graph): { nodes: RFNode[]; edges: RFEdge[] } {
+  const nodes = g.nodes.map((n): RFNode => ({
+    id: n.id, type: n.kind, position: n.position, ...(n.parent ? { parentId: n.parent } : {}),
+    ...(n.kind === "group" ? { style: { width: n.width ?? 360, height: n.height ?? 240 } } : {}),
+    data: { label: n.data.label, technology: n.technology, component_type: n.data.component_type, notes: n.data.notes,
+            layer: n.data.layer, config: n.data.config },
+  }));
+  nodes.sort((a, b) => Number(b.type === "group") - Number(a.type === "group")); // React Flow needs parents first
+  const edges = g.edges.map((e): RFEdge => ({
+    id: e.id, source: e.source, target: e.target, data: { connection_type: e.connection_type, label: e.label, notes: e.notes },
+  }));
+  return { nodes, edges };
+}
+
+export const uid = (p: string) => `${p}_${Math.random().toString(36).slice(2, 8)}`;
