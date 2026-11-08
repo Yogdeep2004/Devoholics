@@ -32,7 +32,7 @@ def extract_json(text: str) -> dict:
 
 def ask(llm: LLM, system: str, user: str, model: type[BaseModel]):
     """Call the LLM and validate with Pydantic. One repair attempt feeds the validation error back."""
-    raw = ""
+    raw, err = "", ""
     for attempt in (0, 1):
         prompt = user if attempt == 0 else (
             f"{user}\n\nYour previous reply was invalid: {err}\nReply again with ONE corrected JSON object only.")
