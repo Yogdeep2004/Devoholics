@@ -183,7 +183,7 @@ docs/        design system, deployment notes, phase notes, README assets
 - **Growth numbers need time.** Momentum and the history charts fill in as daily snapshots accumulate. On day one they correctly say there is not enough history yet.
 - **"Trending" is not "good".** It shows what is gaining stars fastest, with caution flags where a pattern looks off. It is a place to start looking, not a recommendation.
 - **AI summaries and proposals can be wrong.** They are labelled, grounded in the repository text, validated before use, and never applied without your approval. Verify against each tool's documentation.
-- **Not built yet:** advanced personalised ranking, a technology radar, an ecosystem relationship graph, cost estimation, custom alerts and team workspaces. These wait for real demand.
+- **Not built yet:** advanced personalised ranking, a technology radar, an ecosystem relationship graph, cost estimation, custom alerts and team workspaces. These wait for a very real demand.
 
 ---
 
