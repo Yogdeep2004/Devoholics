@@ -19,6 +19,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_API_TOKEN }}
       - run: pip install -e .
       - run: alembic upgrade head
+      - name: Security check (every public table must have RLS)
+        run: python -m app.cli security-check
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
       - run: python -m app.cli refresh
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}

@@ -131,6 +131,21 @@ def make_admin() -> None:
         u.is_admin = True; db.commit(); log.info("admin_granted", email=email)
 
 
+def security_check() -> None:
+    """Fail (exit 1) if any table in `public` lacks row-level security. Run after migrations and in CI."""
+    from app.db import engine
+    from app.security import find_exposed_writable, find_unprotected
+    if engine.dialect.name != "postgresql":
+        log.info("security_check_skipped", reason="not postgres"); return
+    with engine.connect() as conn:
+        bad = find_unprotected(conn)
+        writable = find_exposed_writable(conn, bad)
+    if bad:
+        log.error("tables_without_rls", tables=bad, writable_by_api_roles=writable)
+        raise SystemExit(f"Tables in public without RLS: {', '.join(bad)}")
+    log.info("security_check_ok")
+
+
 def refresh() -> None:
     """Everything a daily cron needs, in order. Each step is idempotent."""
     for step in (sync, discover_new, usecases, packages, models, events):
@@ -152,4 +167,4 @@ def mcp() -> None:
 
 if __name__ == "__main__":
     configure_logging(settings.log_level)
-    {"seed": seed, "sync": sync, "packages": packages, "models": models, "mcp": mcp, "events": events, "refresh": refresh, "blueprints": blueprints, "discover": discover_new, "usecases": usecases, "make-admin": make_admin}[sys.argv[1]]()
+    {"seed": seed, "sync": sync, "packages": packages, "models": models, "mcp": mcp, "events": events, "refresh": refresh, "blueprints": blueprints, "security-check": security_check, "discover": discover_new, "usecases": usecases, "make-admin": make_admin}[sys.argv[1]]()

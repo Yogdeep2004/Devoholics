@@ -38,3 +38,15 @@ Changing an env var: `printf '%s' "value" | npx vercel env add NAME production -
 ## One manual step: Supabase Auth URLs
 Supabase dashboard, Authentication, URL Configuration: set **Site URL** to the web URL and add it to **Redirect URLs**.
 Otherwise sign-up confirmation emails link to localhost.
+
+## Database security (Supabase Data API)
+Every table in `public` is reachable through PostgREST with the public key, so every table needs row-level security.
+Supabase's default privileges also grant `anon` and `authenticated` full access to new public tables, which RLS alone does not
+fully cover (`TRUNCATE` is not governed by RLS), so internal tables are revoked as well.
+
+- Each migration that creates a table enables RLS in the same migration.
+- `0008` protects `alembic_version` (RLS on, grants revoked from `anon`/`authenticated`, deliberately **no policy**). The advisor shows an
+  INFO "RLS enabled, no policy" for it: that is the intended state. Do not add a permissive policy to silence it.
+- `python -m app.cli security-check` exits non-zero if any `public` table lacks RLS. It runs in the daily refresh workflow.
+- After any schema change, run the Supabase advisors (Security) and re-check.
+- Still to do in the Supabase dashboard (not scriptable here): Authentication, Providers/Password security, enable **leaked password protection**.
